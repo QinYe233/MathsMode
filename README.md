@@ -26,6 +26,10 @@ npm run build        # 类型检查并构建
 npm run tauri dev    # 以 Tauri 桌面应用方式运行
 ```
 
+## Contributors
+
+- [QinYe233](https://github.com/QinYe233)
+
 ## 许可证
 
 [MIT](LICENSE)
