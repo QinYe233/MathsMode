@@ -96,6 +96,34 @@ describe('App', () => {
     expect(await screen.findByRole('button', { name: '(3,2)' })).toBeInTheDocument();
   });
 
+  it('同名向量替换旧向量', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
+    const vecInput = screen.getByPlaceholderText(/回车添加/);
+    await userEvent.type(vecInput, 'a=(3,2)');
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('button', { name: 'a=(3,2)' })).toBeInTheDocument();
+    await userEvent.type(vecInput, 'a=(5,5)');
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('button', { name: 'a=(5,5)' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'a=(3,2)' })).toBeNull();
+  });
+
+  it('无名同名坐标向量替换；无名不覆盖命名向量', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
+    const vecInput = screen.getByPlaceholderText(/回车添加/);
+    await userEvent.type(vecInput, '(3,2)');
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('button', { name: '(3,2)' })).toBeInTheDocument();
+    await userEvent.type(vecInput, '(3,2)');
+    await userEvent.keyboard('{Enter}');
+    await userEvent.type(vecInput, 'a=(3,2)');
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('button', { name: 'a=(3,2)' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '(3,2)' }).length).toBe(1);
+  });
+
   it('清空绘图清空函数与向量', async () => {
     render(<App />);
     await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));

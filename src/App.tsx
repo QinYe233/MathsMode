@@ -61,7 +61,9 @@ export default function App() {
     if ('error' in r) return r.error;
     setVectorDefs((prev) => {
       const others = prev.filter(
-        (v) => !(v.name && v.name === r.name) && !(!r.name && v.x === r.x && v.y === r.y),
+        (v) =>
+          !(v.name && r.name && v.name === r.name) &&
+          !(!v.name && !r.name && v.x === r.x && v.y === r.y),
       );
       return [...others, { id: `vector-${Date.now()}`, name: r.name, x: r.x, y: r.y }];
     });
