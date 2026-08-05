@@ -7,7 +7,7 @@ vi.mock('./core/aiClient', () => ({
   streamChat: vi.fn(),
   ApiError: class ApiError extends Error {},
 }));
-vi.mock('function-plot', () => ({ default: vi.fn() }));
+vi.mock('function-plot', () => ({ default: vi.fn(), registerGraphType: vi.fn() }));
 
 import { streamChat } from './core/aiClient';
 const mockedStream = vi.mocked(streamChat);
@@ -72,5 +72,58 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
     const app = document.querySelector('.app') as HTMLElement;
     expect(app.style.gridTemplateColumns).toBe('44px 1fr 500px');
+  });
+
+  it('向量输入后出现图例，非法输入显示错误，修改输入清除错误', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
+    const vecInput = screen.getByPlaceholderText(/回车添加/);
+    await userEvent.type(vecInput, 'a=(3,2)');
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('button', { name: 'a=(3,2)' })).toBeInTheDocument();
+    await userEvent.type(vecInput, 'bad');
+    await userEvent.keyboard('{Enter}');
+    expect(screen.getByText(/格式应为/)).toBeInTheDocument();
+    await userEvent.type(vecInput, 'x');
+    expect(screen.queryByText(/格式应为/)).toBeNull();
+  });
+
+  it('无名向量显示坐标图例', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
+    await userEvent.type(screen.getByPlaceholderText(/回车添加/), '(3,2)');
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('button', { name: '(3,2)' })).toBeInTheDocument();
+  });
+
+  it('清空绘图清空函数与向量', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
+    await userEvent.type(screen.getByPlaceholderText(/手动输入函数/), 'x^2');
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('button', { name: 'x^2' })).toBeInTheDocument();
+    const vecInput = screen.getByPlaceholderText(/回车添加/);
+    await userEvent.type(vecInput, 'a=(3,2)');
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('button', { name: 'a=(3,2)' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /清空绘图/ }));
+    expect(screen.getByText(/未识别到函数/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'x^2' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'a=(3,2)' })).toBeNull();
+  });
+
+  it('清空后重新提问可恢复分析曲线', async () => {
+    mockedStream.mockImplementation(async function* () {
+      yield '由题可得：\n<!-- MATH_FUNCTIONS -->\n{"functions": [{"id": "f", "expr": "x^2 - 2x - 3"}]}\n<!-- /MATH_FUNCTIONS -->';
+    });
+    render(<App />);
+    await userEvent.type(screen.getByPlaceholderText(/输入数学问题/), '求单调区间');
+    await userEvent.click(screen.getByRole('button', { name: /发送/ }));
+    expect(await screen.findByText('奇偶性')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /清空绘图/ }));
+    expect(screen.getByText(/未识别到函数/)).toBeInTheDocument();
+    await userEvent.type(screen.getByPlaceholderText(/输入数学问题/), '再来一次');
+    await userEvent.click(screen.getByRole('button', { name: /发送/ }));
+    expect(await screen.findByText('奇偶性')).toBeInTheDocument();
   });
 });

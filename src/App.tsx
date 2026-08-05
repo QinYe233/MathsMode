@@ -5,7 +5,8 @@ import { HistorySidebar } from './components/HistorySidebar';
 import { SettingsModal } from './components/SettingsModal';
 import { DrawerPanel, DrawerTab } from './components/DrawerPanel';
 import { loadSettings } from './core/settingsStore';
-import type { AISettings, FunctionAnalysis } from './types';
+import { parseVector } from './core/mathUtil';
+import type { AISettings, FunctionAnalysis, VectorDef } from './types';
 import { analyzeFunction } from './core/analysisEngine';
 
 const DRAWER_KEY = 'mathmate.drawer.v1';
@@ -28,6 +29,7 @@ export default function App() {
   const [settings, setSettings] = useState<AISettings>(() => loadSettings());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [manualAnalyses, setManualAnalyses] = useState<FunctionAnalysis[]>([]);
+  const [vectorDefs, setVectorDefs] = useState<VectorDef[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerWidth, setDrawerWidthState] = useState<number>(loadDrawerWidth);
 
@@ -54,6 +56,24 @@ export default function App() {
     setManualAnalyses((prev) => [...prev.filter((x) => x.expression !== expr), a]);
   };
 
+  const addVector = (input: string): string | null => {
+    const r = parseVector(input);
+    if ('error' in r) return r.error;
+    setVectorDefs((prev) => {
+      const others = prev.filter(
+        (v) => !(v.name && v.name === r.name) && !(!r.name && v.x === r.x && v.y === r.y),
+      );
+      return [...others, { id: `vector-${Date.now()}`, name: r.name, x: r.x, y: r.y }];
+    });
+    return null;
+  };
+
+  const handleClear = () => {
+    chat.clearPlot();
+    setManualAnalyses([]);
+    setVectorDefs([]);
+  };
+
   const analysesKey = [
     ...chat.messages.flatMap((m) => m.analysis ?? []),
     ...manualAnalyses,
@@ -71,13 +91,13 @@ export default function App() {
   const initialCount = [
     ...chat.messages.flatMap((m) => m.analysis ?? []),
     ...manualAnalyses,
-  ].length;
+  ].length + vectorDefs.length;
   const prevAnalysesCount = useRef(initialCount);
   useEffect(() => {
-    const n = visibleAnalyses.length;
+    const n = visibleAnalyses.length + vectorDefs.length;
     if (n > 0 && prevAnalysesCount.current === 0) setDrawerOpen(true);
     prevAnalysesCount.current = n;
-  }, [visibleAnalyses.length]);
+  }, [visibleAnalyses.length, vectorDefs.length]);
 
   return (
     <div
@@ -107,10 +127,13 @@ export default function App() {
       {drawerOpen ? (
         <DrawerPanel
           analyses={visibleAnalyses}
+          vectors={vectorDefs}
           width={drawerWidth}
           onResize={setDrawerWidth}
           onClose={() => setDrawerOpen(false)}
           onResizeEnd={persistDrawerWidth}
+          onClear={handleClear}
+          onAddVector={addVector}
         />
       ) : (
         <DrawerTab onClick={() => setDrawerOpen(true)} />

@@ -120,6 +120,13 @@ export function useChat() {
     await send(lastUser.content);
   }, [messages, loading, send]);
 
+  const clearPlot = useCallback(() => {
+    patchActive((s) => ({
+      ...s,
+      messages: s.messages.map((m) => (m.analysis ? { ...m, analysis: undefined } : m)),
+    }));
+  }, [patchActive]);
+
   return {
     sessions,
     activeId,
@@ -128,6 +135,7 @@ export function useChat() {
     error,
     send,
     retry,
+    clearPlot,
     newSession,
     deleteSession,
     setActiveId,
