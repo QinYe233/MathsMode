@@ -1,15 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import functionPlot from 'function-plot';
-import type { FunctionAnalysis } from '../types';
+import type { FunctionAnalysis, VectorDef } from '../types';
 import { PropertyCard } from './PropertyCard';
+import '../core/vectorGraphType';
 
 const COLORS = ['#2563eb', '#f59e0b', '#16a34a', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
+interface Props {
+  analyses: FunctionAnalysis[];
+  vectors: VectorDef[];
+  onClear: () => void;
+  onAddVector: (input: string) => string | null;
+}
+
+export function GraphPanel({ analyses, vectors, onClear, onAddVector }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [resetKey, setResetKey] = useState(0);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const [vecInput, setVecInput] = useState('');
+  const [vecError, setVecError] = useState<string | null>(null);
+
+  const total = analyses.length + vectors.length;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -19,15 +31,16 @@ export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [analyses.length]);
+  }, [analyses.length, vectors.length]);
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || analyses.length === 0) return;
+    if (!el || total === 0) return;
     const width = size?.w || el.clientWidth || 400;
     const height = Math.max(size?.h || el.clientHeight || 340, 260);
     const visible = analyses.filter((a) => !hidden[a.expression]);
-    const viewBox = autoView(analyses);
+    const visibleVectors = vectors.filter((v) => !hidden[`v:${v.id}`]);
+    const viewBox = autoView(analyses, vectors);
     try {
       functionPlot({
         target: el,
@@ -38,43 +51,97 @@ export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
         tip: { xLine: true, yLine: true },
         xAxis: { domain: viewBox.x, label: 'x' },
         yAxis: { domain: viewBox.y, label: 'y' },
-        data: visible.map((a, i) => ({
-          fn: a.expression,
-          color: COLORS[i % COLORS.length],
-          graphType: 'polyline',
-        })),
-        annotations: visible.flatMap((a, i) => {
-          const inView = (x: number, y: number) =>
-            x > viewBox.x[0] && x < viewBox.x[1] && y > viewBox.y[0] && y < viewBox.y[1];
-          const anns = a.extrema
-            .filter((e) => inView(e.x, e.y))
-            .map((e) => ({ x: e.x, y: e.y, text: e.type === 'min' ? 'min' : 'max' }));
-          a.zeroPoints.forEach((z) => {
-            if (inView(z, 0)) anns.push({ x: z, y: 0, text: '0' });
-          });
-          a.asymptotes.forEach((as) => {
-            if (as.type === 'vertical') {
-              const x = parseFloat(as.value.slice(4));
-              if (x > viewBox.x[0] && x < viewBox.x[1]) {
-                anns.push({
-                  x,
-                  y: viewBox.y[0] + (viewBox.y[1] - viewBox.y[0]) * 0.15,
-                  text: '渐近线',
-                });
+        data: [
+          ...visible.map((a, i) => ({
+            fn: a.expression,
+            color: COLORS[i % COLORS.length],
+            graphType: 'polyline' as const,
+          })),
+          ...visibleVectors.map((v, i) => ({
+            vector: [v.x, v.y] as [number, number],
+            color: COLORS[(visible.length + i) % COLORS.length],
+            graphType: 'vector' as const,
+            skipTip: true,
+          })),
+        ] as never,
+        annotations: [
+          ...visible.flatMap((a) => {
+            const inView = (x: number, y: number) =>
+              x > viewBox.x[0] && x < viewBox.x[1] && y > viewBox.y[0] && y < viewBox.y[1];
+            const anns = a.extrema
+              .filter((e) => inView(e.x, e.y))
+              .map((e) => ({ x: e.x, y: e.y, text: e.type === 'min' ? 'min' : 'max' }));
+            a.zeroPoints.forEach((z) => {
+              if (inView(z, 0)) anns.push({ x: z, y: 0, text: '0' });
+            });
+            a.asymptotes.forEach((as) => {
+              if (as.type === 'vertical') {
+                const x = parseFloat(as.value.slice(4));
+                if (x > viewBox.x[0] && x < viewBox.x[1]) {
+                  anns.push({ x, y: viewBox.y[0] + (viewBox.y[1] - viewBox.y[0]) * 0.15, text: '渐近线' });
+                }
               }
+            });
+            return anns;
+          }),
+          ...visibleVectors.flatMap((v) => {
+            const tx = v.x + 0.25;
+            const ty = v.y + 0.25;
+            if (tx > viewBox.x[0] && tx < viewBox.x[1] && ty > viewBox.y[0] && ty < viewBox.y[1]) {
+              return [{ x: tx, y: ty, text: v.name ? `${v.name}(${v.x},${v.y})` : `(${v.x},${v.y})` }];
             }
-          });
-          void i;
-          return anns;
-        }),
+            return [];
+          }),
+        ],
       });
     } catch {
       /* 画图失败不崩溃 */
     }
-  }, [analyses, hidden, resetKey, size]);
+  }, [analyses, vectors, hidden, resetKey, size, total]);
 
-  if (analyses.length === 0) {
-    return <div className="graph-empty">未识别到函数，可在左侧手动输入，如 f(x)=x^2 - 2x - 3</div>;
+  const addVector = () => {
+    const text = vecInput.trim();
+    if (!text) return;
+    const err = onAddVector(text);
+    setVecError(err);
+    if (!err) setVecInput('');
+  };
+
+  const vectorInputRow = (
+    <>
+      <div className="func-input-row vector-input-row">
+        <span className="func-input-label">向量</span>
+        <input
+          className={`func-input${vecError ? ' invalid' : ''}`}
+          value={vecInput}
+          placeholder="a=(3,2)，回车添加"
+          onChange={(e) => {
+            setVecInput(e.target.value);
+            if (vecError) setVecError(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') addVector();
+          }}
+        />
+      </div>
+      {vecError && <div className="func-input-error">{vecError}</div>}
+    </>
+  );
+
+  if (total === 0) {
+    return (
+      <div className="graph-panel">
+        <div className="graph-toolbar">
+          <button className="legend-btn danger" onClick={onClear} disabled>
+            清空绘图
+          </button>
+        </div>
+        {vectorInputRow}
+        <div className="graph-empty">
+          未识别到函数或向量，可在左侧手动输入函数，或在下方输入向量，如 a=(3,2)
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -90,10 +157,27 @@ export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
             {a.expression}
           </button>
         ))}
+        {vectors.map((v, i) => (
+          <button
+            key={v.id}
+            className={`legend-btn ${hidden[`v:${v.id}`] ? 'off' : ''}`}
+            style={{
+              borderColor: COLORS[(analyses.length + i) % COLORS.length],
+              color: COLORS[(analyses.length + i) % COLORS.length],
+            }}
+            onClick={() => setHidden((h) => ({ ...h, [`v:${v.id}`]: !h[`v:${v.id}`] }))}
+          >
+            {v.name ? `${v.name}=(${v.x},${v.y})` : `(${v.x},${v.y})`}
+          </button>
+        ))}
         <button className="legend-btn zoom" onClick={() => setResetKey((k) => k + 1)} title="重置视野">
           重置视野
         </button>
+        <button className="legend-btn danger" onClick={onClear} disabled={total === 0} title="清空所有函数和向量">
+          清空绘图
+        </button>
       </div>
+      {vectorInputRow}
       <div className="graph-plot" ref={containerRef} />
       <div className="property-list">
         {analyses.map((a, i) => (
@@ -104,7 +188,10 @@ export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
   );
 }
 
-function autoView(analyses: FunctionAnalysis[]): { x: [number, number]; y: [number, number] } {
+function autoView(
+  analyses: FunctionAnalysis[],
+  vectors: VectorDef[],
+): { x: [number, number]; y: [number, number] } {
   const xs: number[] = [];
   const ys: number[] = [];
   for (const a of analyses) {
@@ -117,6 +204,10 @@ function autoView(analyses: FunctionAnalysis[]): { x: [number, number]; y: [numb
         ys.push(e.y);
       }
     });
+  }
+  for (const v of vectors) {
+    if (Math.abs(v.x) < 1e4) xs.push(v.x);
+    if (Math.abs(v.y) < 1e6) ys.push(v.y);
   }
   const pad = (v: number) => (Math.abs(v) > 20 ? Math.abs(v) * 1.2 : 5);
   const x0 = xs.length ? Math.min(...xs) : -10;

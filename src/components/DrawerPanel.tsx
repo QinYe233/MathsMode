@@ -1,16 +1,19 @@
 import { useRef } from 'react';
-import type { FunctionAnalysis } from '../types';
+import type { FunctionAnalysis, VectorDef } from '../types';
 import { GraphPanel } from './GraphPanel';
 
 interface Props {
   analyses: FunctionAnalysis[];
+  vectors: VectorDef[];
   width: number;
   onResize: (w: number) => void;
   onClose: () => void;
   onResizeEnd?: () => void;
+  onClear: () => void;
+  onAddVector: (input: string) => string | null;
 }
 
-export function DrawerPanel({ analyses, width, onResize, onClose, onResizeEnd }: Props) {
+export function DrawerPanel({ analyses, vectors, width, onResize, onClose, onResizeEnd, onClear, onAddVector }: Props) {
   const dragRef = useRef<{ startX: number; startW: number } | null>(null);
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -43,7 +46,7 @@ export function DrawerPanel({ analyses, width, onResize, onClose, onResizeEnd }:
           »
         </button>
       </div>
-      <GraphPanel analyses={analyses} />
+      <GraphPanel analyses={analyses} vectors={vectors} onClear={onClear} onAddVector={onAddVector} />
     </div>
   );
 }
