@@ -1,5 +1,7 @@
 # 清空绘图按钮 + 平面向量绘图 实施计划
 
+> **Status:** 已实施（2026-08-05）。全量验证：vitest 115/115、tsc 干净、build 成功、Playwright 冒烟 25/25。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 图板工具栏新增「清空绘图」按钮（清空全部函数与向量），并支持手动输入向量（如 `a=(3,2)`）以箭头形式绘制在坐标系中，与函数曲线共存。
@@ -176,26 +178,15 @@ export interface VectorDef {
 }
 ```
 
-- [ ] **Step 2: 重写 function-plot.d.ts 为模块扩充**
+- [ ] **Step 2: 删除 function-plot.d.ts（已核实：模块扩充是死代码）**
 
-将 `src/types/function-plot.d.ts` 全文替换为：
+实施时验证：TS 接口合并不会拓宽联合类型（`graphType` 联合缺 `'vector'` 的重声明触发 TS2717），且 `skipLibCheck: true` 掩盖该错误——扩充文件对 tsc 无实际效果。**直接删除 `src/types/function-plot.d.ts`**（包自带类型已含 `FunctionPlotDatum.vector` / `skipTip`；Task 4 在 data 构造处做一次类型断言）。
 
-```ts
-import 'function-plot';
-
-declare module 'function-plot' {
-  interface FunctionPlotDatum {
-    graphType?: 'polyline' | 'interval' | 'scatter' | 'text' | 'vector';
-  }
-}
-```
-
-（包自带类型已含 `FunctionPlotOptions`/`FunctionPlotDatum` 的其余字段与 `vector`/`skipTip`；此扩充只补 `graphType` 联合值。若 tsc 报错「Cannot augment module」之类，改为删除本文件（包类型已足够，仅 datum 构造处的 graphType 字面量需 as 断言，见 Task 4 Step 3 的备选）。）
-
-- [ ] **Step 3: 安装 d3-selection**
+- [ ] **Step 3: 安装 d3-selection 与类型包**
 
 Run: `npm install d3-selection@^3.0.0`
-Expected: package.json 的 dependencies 增加 `"d3-selection": "^3.0.0"`。
+Run: `npm install -D @types/d3-selection`
+（d3-selection v3 无内置类型，TS7016 不被 skipLibCheck 抑制；@types 必须有。）
 
 - [ ] **Step 4: 验证类型**
 
@@ -709,7 +700,7 @@ function autoView(
 注意：
 - 空状态分支与主分支都渲染「清空按钮（禁用）+ 向量输入行 + 错误行」——空状态下仍可输入第一个向量；仅 graph-plot 与 property-list 只出现在主分支。
 - `import '../core/vectorGraphType';` 触发注册（副作用导入）。
-- 若 Task 2 Step 2 删除了本地 d.ts（备选路径），此处 `graphType: 'vector' as const` 会类型报错——改为在 data 构造处用 `graphType: 'vector' as 'vector'` 亦可；若仍报错，将整个 data 数组 `as never` 断言后传入（以 tsc 干净为准）。
+- 包类型 `graphType` 联合无 `'vector'`（`skipLibCheck` 掩盖扩充，Task 2 已删除本地 d.ts）：data 数组构造处整体 `as never` 断言一次传入（或 `as unknown as FunctionPlotDatum[]`），以 tsc 干净为准。
 
 - [ ] **Step 4: 更新 DrawerPanel 透传**
 
