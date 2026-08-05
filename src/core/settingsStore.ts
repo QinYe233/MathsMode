@@ -1,31 +1,24 @@
 import type { AISettings } from '../types';
 
-const KEY = 'mathmate.settings.v1';
+const SETTINGS_KEY = 'mathmate.settings.v1';
 
-// NOTE: full implementation arrives in Task 14; API is final.
+export const defaultSettings: AISettings = {
+  baseUrl: 'https://api.openai.com/v1',
+  apiKey: '',
+  model: 'gpt-4o-mini',
+  stream: true,
+};
 
 export function loadSettings(): AISettings {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<AISettings>;
-      return {
-        baseUrl: typeof parsed.baseUrl === 'string' ? parsed.baseUrl : 'https://api.openai.com/v1',
-        apiKey: typeof parsed.apiKey === 'string' ? parsed.apiKey : '',
-        model: typeof parsed.model === 'string' ? parsed.model : 'gpt-4o-mini',
-        stream: typeof parsed.stream === 'boolean' ? parsed.stream : true,
-      };
-    }
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return { ...defaultSettings, ...JSON.parse(raw) };
   } catch {
     /* ignore */
   }
-  return { baseUrl: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-4o-mini', stream: true };
+  return defaultSettings;
 }
 
-export function saveSettings(settings: AISettings) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(settings));
-  } catch {
-    /* storage full or unavailable — ignore */
-  }
+export function saveSettings(s: AISettings) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
 }
