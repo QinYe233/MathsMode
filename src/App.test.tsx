@@ -124,6 +124,19 @@ describe('App', () => {
     expect(screen.getAllByRole('button', { name: '(3,2)' }).length).toBe(1);
   });
 
+  it('无名同名坐标输入不删除已有命名向量', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
+    const vecInput = screen.getByPlaceholderText(/回车添加/);
+    await userEvent.type(vecInput, 'a=(3,2)');
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('button', { name: 'a=(3,2)' })).toBeInTheDocument();
+    await userEvent.type(vecInput, '(3,2)');
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('button', { name: '(3,2)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'a=(3,2)' })).toBeInTheDocument();
+  });
+
   it('清空绘图清空函数与向量', async () => {
     render(<App />);
     await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
