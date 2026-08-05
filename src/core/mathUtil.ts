@@ -49,3 +49,19 @@ export function derivativeExpr(expr: string): string {
     return '';
   }
 }
+
+export function parseVector(
+  input: string,
+): { name: string; x: number; y: number } | { error: string } {
+  const s = input.trim();
+  const num = '(-?\\d+(?:\\.\\d+)?)';
+  const named = new RegExp(`^([a-zA-Z]{1,2})\\s*=\\s*\\(\\s*${num}\\s*,\\s*${num}\\s*\\)$`);
+  const anonParen = new RegExp(`^\\(\\s*${num}\\s*,\\s*${num}\\s*\\)$`);
+  const anonBare = new RegExp(`^${num}\\s*,\\s*${num}$`);
+  const m = named.exec(s) ?? anonParen.exec(s) ?? anonBare.exec(s);
+  if (!m) return { error: '格式应为 a=(3,2)，坐标支持负号和小数' };
+  const x = parseFloat(m[m.length - 2]);
+  const y = parseFloat(m[m.length - 1]);
+  const name = named.test(s) ? m[1] : '';
+  return { name, x, y };
+}

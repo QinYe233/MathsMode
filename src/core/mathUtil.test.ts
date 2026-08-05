@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { makeEvaluator, derivativeExpr, validateExpression } from './mathUtil';
+import { makeEvaluator, derivativeExpr, validateExpression, parseVector } from './mathUtil';
 
 describe('makeEvaluator', () => {
   it('计算多项式取值', () => {
@@ -36,5 +36,41 @@ describe('validateExpression', () => {
   it('非法表达式返回中文错误消息', () => {
     expect(validateExpression('abc')).not.toBeNull();
     expect(validateExpression('x^^2')).not.toBeNull();
+  });
+});
+
+describe('parseVector', () => {
+  it('解析带名向量 a=(3,2)', () => {
+    expect(parseVector('a=(3,2)')).toEqual({ name: 'a', x: 3, y: 2 });
+  });
+
+  it('解析带名向量（空格、负号、小数）', () => {
+    expect(parseVector('AB = (-3, 2.5)')).toEqual({ name: 'AB', x: -3, y: 2.5 });
+  });
+
+  it('解析无名向量 (3,2)', () => {
+    expect(parseVector('(3,2)')).toEqual({ name: '', x: 3, y: 2 });
+  });
+
+  it('解析无名裸坐标 -3,2', () => {
+    expect(parseVector('-3,2')).toEqual({ name: '', x: -3, y: 2 });
+  });
+
+  it('拒绝缺少逗号', () => {
+    expect(parseVector('(3 2)')).toHaveProperty('error');
+  });
+
+  it('拒绝非数字分量', () => {
+    expect(parseVector('a=(x,2)')).toHaveProperty('error');
+    expect(parseVector('a=(3,)')).toHaveProperty('error');
+  });
+
+  it('拒绝多余字符', () => {
+    expect(parseVector('a=(3,2);')).toHaveProperty('error');
+    expect(parseVector('a=3,2')).toHaveProperty('error'); // 带名必须带括号
+  });
+
+  it('拒绝超过 2 字符的名字', () => {
+    expect(parseVector('abc=(3,2)')).toHaveProperty('error');
   });
 });
