@@ -26,7 +26,7 @@
 - `useChat` 新增 `clearPlot()`：返回新消息数组，剥离所有消息的 `analysis` 字段（保留 `content` / `functions` / `role`）。
 - App 新增 `handleClear()`：`chat.clearPlot()` + `setManualAnalyses([])` + `setVectorDefs([])`。
 - 传参链：App → DrawerPanel（`onClear`）→ GraphPanel（`onClear`）。
-- 清空不持久化：刷新后历史会话恢复，曲线随历史消息重新出现——数据源是历史消息，此为可接受行为。
+- 清空随会话持久化：`useChat` 对 sessions 变更自动保存（historyStore 300ms debounce），因此清空后刷新保持清空状态——聊天文本不受影响，重新提问即可恢复分析。
 - 清空后不触发自动展开逻辑（计数 n→0，`prevAnalysesCount` 同步更新为 0，无 0→n 转换）。
 
 ## 功能 2：向量输入绘图
@@ -124,5 +124,5 @@ export interface VectorDef {
 
 - 两点式向量（`AB: A(1,2) B(3,4)`）、指定起点
 - 向量运算（加减/数乘）、向量动画
-- 向量持久化（与函数一致：内存态，随会话历史恢复）
+- 向量持久化（向量为临时绘图输入，随页面刷新消失；函数清空持久化，见功能 1）
 - 清空二次确认
