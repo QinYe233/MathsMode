@@ -1,7 +1,8 @@
 import type { FunctionDef } from '../types';
 
 const BLOCK_RE = /<!--\s*MATH_FUNCTIONS\s*-->([\s\S]*?)<!--\s*\/MATH_FUNCTIONS\s*-->/;
-const FN_RE = /(?:f|g|h)\s*\(\s*x\s*\)\s*=\s*([0-9a-zA-Z+\-*/^().\s]{1,80})/g;
+const FN_RE =
+  /(?:f|g|h)\s*\(\s*x\s*\)\s*=\s*([0-9a-zA-Z+\-*/^().\s]{1,80})|y\s*=\s*([^,\n]{1,80})/g;
 
 export function extractFunctions(reply: string): FunctionDef[] {
   const block = reply.match(BLOCK_RE);
@@ -31,7 +32,9 @@ export function extractFunctions(reply: string): FunctionDef[] {
   let m: RegExpExecArray | null;
   let count = 0;
   while ((m = FN_RE.exec(reply)) !== null && count < 3) {
-    fallback.push({ id: `f${count + 1}`, expr: normalizeExpr(m[1].trim()) });
+    const expr = (m[1] ?? m[2] ?? '').trim();
+    if (!expr) continue;
+    fallback.push({ id: `f${count + 1}`, expr: normalizeExpr(expr) });
     count++;
   }
   return fallback;

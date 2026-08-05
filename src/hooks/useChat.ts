@@ -20,7 +20,8 @@ export function useChat() {
   const messages = active?.messages ?? [];
 
   useEffect(() => {
-    historyStore.save(sessions);
+    const t = setTimeout(() => historyStore.save(sessions), 300);
+    return () => clearTimeout(t);
   }, [sessions]);
 
   const setSettings = (settings: AISettings) => {
@@ -102,17 +103,22 @@ export function useChat() {
   };
 
   const deleteSession = (id: string) => {
-    setSessions((prev) => {
-      const next = prev.filter((s) => s.id !== id);
-      if (next.length === 0) {
-        const fresh = historyStore.create();
-        setActiveId(fresh.id);
-        return [fresh];
-      }
-      if (id === activeId) setActiveId(next[0].id);
-      return next;
-    });
+    const next = sessions.filter((s) => s.id !== id);
+    if (next.length === 0) {
+      const fresh = historyStore.create();
+      setSessions([fresh]);
+      setActiveId(fresh.id);
+      return;
+    }
+    setSessions(next);
+    if (id === activeId) setActiveId(next[0].id);
   };
+
+  const retry = useCallback(async () => {
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    if (!lastUser || loading) return;
+    await send(lastUser.content);
+  }, [messages, loading, send]);
 
   return {
     sessions,
@@ -121,6 +127,7 @@ export function useChat() {
     loading,
     error,
     send,
+    retry,
     newSession,
     deleteSession,
     setActiveId,

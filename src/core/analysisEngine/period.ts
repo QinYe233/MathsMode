@@ -1,4 +1,4 @@
-import { parse } from 'mathjs';
+import { ConstantNode, parse } from 'mathjs';
 import type { Interval } from '../../types';
 import { inDomain } from './domain';
 
@@ -8,7 +8,7 @@ export function analyzePeriod(
   domain: Interval[],
 ): number | undefined {
   const trig = collectTrig(expr);
-  if (trig.length > 0) {
+  if (trig.length > 0 && !hasXOutsideTrig(expr)) {
     let period: number | undefined;
     for (const [name, arg] of trig) {
       const a = linearCoeff(arg);
@@ -25,6 +25,35 @@ export function analyzePeriod(
     if (isPeriod(f, T, domain)) return T;
   }
   return undefined;
+}
+
+function hasXOutsideTrig(expr: string): boolean {
+  let root: any;
+  try {
+    root = parse(expr);
+  } catch {
+    return false;
+  }
+  const stripped = root.transform((n: any) => {
+    if (n.type === 'FunctionNode') {
+      const name = String(n.fn?.name ?? '').toLowerCase();
+      if (name === 'sin' || name === 'cos' || name === 'tan') {
+        return new ConstantNode(0);
+      }
+    }
+    return n;
+  });
+  let found = false;
+  const walk = (n: any) => {
+    if (found) return;
+    if (n.type === 'SymbolNode' && n.name === 'x') {
+      found = true;
+      return;
+    }
+    n.forEach?.(walk);
+  };
+  walk(stripped);
+  return found;
 }
 
 function collectTrig(expr: string): [string, string][] {

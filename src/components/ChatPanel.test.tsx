@@ -34,4 +34,26 @@ describe('ChatPanel', () => {
     );
     expect(screen.getByText(/思考中/)).toBeInTheDocument();
   });
+
+  it('非法手动输入函数显示红色错误且不调用 onAddFunction', async () => {
+    const onAddFunction = vi.fn();
+    render(
+      <ChatPanel
+        messages={[]}
+        loading={false}
+        onSend={() => {}}
+        onAddFunction={onAddFunction}
+      />,
+    );
+    const input = screen.getByPlaceholderText(/手动输入函数/);
+    await userEvent.type(input, 'abc');
+    await userEvent.keyboard('{Enter}');
+    expect(onAddFunction).not.toHaveBeenCalled();
+    expect(screen.getByText(/表达式无法计算/)).toBeInTheDocument();
+    expect(input.className).toContain('invalid');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'x^2');
+    await userEvent.keyboard('{Enter}');
+    expect(onAddFunction).toHaveBeenCalledWith('x^2');
+  });
 });

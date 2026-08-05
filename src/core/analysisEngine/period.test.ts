@@ -24,4 +24,10 @@ describe('analyzePeriod', () => {
   it('非周期函数返回 undefined', () => {
     expect(analyze('x^2')).toBeUndefined();
   });
+  it('x + sin(x) 非纯周期组合返回 undefined', () => {
+    expect(analyze('x + sin(x)')).toBeUndefined();
+  });
+  it('纯三角组合仍给出周期 sin(x)+cos(2x)', () => {
+    expect(Math.abs(analyze('sin(x) + cos(2x)')! - 2 * Math.PI) < 1e-6).toBe(true);
+  });
 });

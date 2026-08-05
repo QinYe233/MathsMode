@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 
@@ -34,13 +34,17 @@ describe('App', () => {
     expect(screen.getByText('非奇非偶')).toBeInTheDocument();
   });
 
-  it('API 报错显示错误条', async () => {
+  it('API 报错显示错误条，点击重试重新请求', async () => {
     mockedStream.mockImplementation(async function* () {
       throw new Error('API 错误 (401)：Invalid API key');
     });
     render(<App />);
     await userEvent.type(screen.getByPlaceholderText(/输入数学问题/), '你好');
     await userEvent.click(screen.getByRole('button', { name: /发送/ }));
-    expect(await screen.findByText(/Invalid API key/)).toBeInTheDocument();
+    const matches = await screen.findAllByText(/Invalid API key/);
+    expect(matches.length).toBeGreaterThan(0);
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole('button', { name: /重试/ }));
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(2));
   });
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useChat } from './hooks/useChat';
 import { ChatPanel } from './components/ChatPanel';
 import { GraphPanel } from './components/GraphPanel';
@@ -25,10 +25,16 @@ export default function App() {
     setManualAnalyses((prev) => [...prev.filter((x) => x.expression !== expr), a]);
   };
 
-  const visibleAnalyses = [
+  const analysisKey = [
     ...chat.messages.flatMap((m) => m.analysis ?? []),
     ...manualAnalyses,
-  ];
+  ]
+    .map((a) => a.expression)
+    .join('|');
+  const visibleAnalyses = useMemo(
+    () => [...chat.messages.flatMap((m) => m.analysis ?? []), ...manualAnalyses],
+    [analysisKey, manualAnalyses],
+  );
 
   return (
     <div className="app">
@@ -44,7 +50,9 @@ export default function App() {
       <ChatPanel
         messages={chat.messages}
         loading={chat.loading}
+        error={chat.error}
         onSend={chat.send}
+        onRetry={chat.retry}
         onAddFunction={addManualFunction}
       />
       <div className="right-panel">

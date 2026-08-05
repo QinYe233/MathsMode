@@ -27,6 +27,9 @@ body {
 .func-input-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
 .func-input-label { color: #7fb2ff; font-family: Consolas, monospace; font-size: 13px; }
 .func-input { flex: 1; background: #10131a; border: 1px solid #2f3543; border-radius: 6px; color: #e6e8ee; padding: 6px 10px; font-family: Consolas, monospace; font-size: 12px; }
+.func-input.invalid { border-color: #ff6b6b; }
+.func-input-error { color: #ff6b6b; font-size: 12px; margin-top: 2px; }
+.chat-error-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #3a1f24; border: 1px solid #ff6b6b66; color: #ffb3b3; border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 8px; }
 .chat-input { width: 100%; background: #10131a; border: 1px solid #2f3543; border-radius: 8px; color: #e6e8ee; padding: 10px 12px; min-height: 44px; resize: vertical; font-size: 14px; }
 .chat-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
 

@@ -20,5 +20,9 @@ export function loadSettings(): AISettings {
 }
 
 export function saveSettings(s: AISettings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch {
+    /* storage full or unavailable — ignore */
+  }
 }

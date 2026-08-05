@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { makeEvaluator, derivativeExpr } from './mathUtil';
+import { makeEvaluator, derivativeExpr, validateExpression } from './mathUtil';
 
 describe('makeEvaluator', () => {
   it('计算多项式取值', () => {
@@ -25,5 +25,16 @@ describe('derivativeExpr', () => {
   });
   it('无法求导时返回空字符串', () => {
     expect(derivativeExpr('???')).toBe('');
+  });
+});
+
+describe('validateExpression', () => {
+  it('合法表达式返回 null', () => {
+    expect(validateExpression('x^2 - 2x - 3')).toBeNull();
+    expect(validateExpression('log(x)')).toBeNull();
+  });
+  it('非法表达式返回中文错误消息', () => {
+    expect(validateExpression('abc')).not.toBeNull();
+    expect(validateExpression('x^^2')).not.toBeNull();
   });
 });

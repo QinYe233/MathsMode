@@ -18,15 +18,21 @@ export function PropertyCard({ analysis }: { analysis: FunctionAnalysis }) {
   rows.push({
     label: '单调性',
     value: analysis.monotonic.length
-      ? analysis.monotonic.map((s) => `${s.interval} ${TREND_LABEL[s.trend]}`).join('；')
+      ? truncate(
+          analysis.monotonic.map((s) => `${s.interval} ${TREND_LABEL[s.trend]}`),
+          analysis.monotonic.length,
+          '个区间',
+        ).join('；')
       : '—',
   });
   rows.push({
     label: '极值',
     value: analysis.extrema.length
-      ? analysis.extrema
-          .map((e) => `x=${r3(e.x)} ${e.type === 'min' ? '最小' : '最大'} y=${r3(e.y)}`)
-          .join('；')
+      ? truncate(
+          analysis.extrema.map((e) => `x=${r3(e.x)} ${e.type === 'min' ? '最小' : '最大'} y=${r3(e.y)}`),
+          analysis.extrema.length,
+          '个',
+        ).join('；')
       : '—',
   });
   rows.push({
@@ -66,4 +72,9 @@ function fmt(iv: { lo: number; hi: number; loOpen: boolean; hiOpen: boolean }): 
 
 function r3(x: number): string {
   return String(Math.round(x * 1000) / 1000);
+}
+
+function truncate(items: string[], total: number, unit: string): string[] {
+  if (items.length <= 6) return items;
+  return [...items.slice(0, 6), `等 ${total} ${unit}`];
 }

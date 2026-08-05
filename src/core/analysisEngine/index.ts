@@ -77,14 +77,22 @@ function buildSummary(
   parts.push(`奇偶性：${parity === 'odd' ? '奇函数' : parity === 'even' ? '偶函数' : '非奇非偶'}`);
   if (monotonic.length) {
     const map = { inc: '递增', dec: '递减', const: '不变' } as const;
-    parts.push(`单调性：${monotonic.map((s) => `${s.interval} 上${map[s.trend]}`).join('，')}`);
+    const items = monotonic.map((s) => `${s.interval} 上${map[s.trend]}`);
+    const text =
+      items.length <= 6
+        ? items.join('，')
+        : `${items.slice(0, 6).join('，')}…共 ${monotonic.length} 个区间`;
+    parts.push(`单调性：${text}`);
   }
   if (extrema.length) {
-    parts.push(
-      `极值：${extrema
-        .map((e) => `x=${round(e.x)} 处${e.type === 'min' ? '最小值' : '最大值'} ${round(e.y)}`)
-        .join('，')}`,
+    const items = extrema.map(
+      (e) => `x=${round(e.x)} 处${e.type === 'min' ? '最小值' : '最大值'} ${round(e.y)}`,
     );
+    const text =
+      items.length <= 6
+        ? items.join('，')
+        : `${items.slice(0, 6).join('，')}…共 ${extrema.length} 个`;
+    parts.push(`极值：${text}`);
   }
   if (zeroPoints.length) {
     parts.push(`零点：x = ${zeroPoints.map((z) => round(z)).join('、')}`);

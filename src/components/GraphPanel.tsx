@@ -8,7 +8,7 @@ const COLORS = ['#4da3ff', '#ffb454', '#57d98a', '#ff6b6b', '#c678dd', '#5ccfe6'
 export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
-  const [view, setView] = useState<{ x: [number, number]; y: [number, number] } | null>(null);
+  const [resetKey, setResetKey] = useState(0);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -16,7 +16,7 @@ export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
     const width = el.clientWidth || 400;
     const height = Math.max(el.clientHeight || 340, 260);
     const visible = analyses.filter((a) => !hidden[a.expression]);
-    const viewBox = view ?? autoView(analyses);
+    const viewBox = autoView(analyses);
     try {
       functionPlot({
         target: el,
@@ -60,7 +60,7 @@ export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
     } catch {
       /* 画图失败不崩溃 */
     }
-  }, [analyses, hidden, view]);
+  }, [analyses, hidden, resetKey]);
 
   if (analyses.length === 0) {
     return <div className="graph-empty">未识别到函数，可在左侧手动输入，如 f(x)=x^2 - 2x - 3</div>;
@@ -71,7 +71,7 @@ export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
       <div className="graph-toolbar">
         {analyses.map((a, i) => (
           <button
-            key={a.expression}
+            key={a.expression + '-' + i}
             className={`legend-btn ${hidden[a.expression] ? 'off' : ''}`}
             style={{ borderColor: COLORS[i % COLORS.length], color: COLORS[i % COLORS.length] }}
             onClick={() => setHidden((h) => ({ ...h, [a.expression]: !h[a.expression] }))}
@@ -79,14 +79,14 @@ export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
             {a.expression}
           </button>
         ))}
-        <button className="legend-btn zoom" onClick={() => setView(null)} title="重置视野">
+        <button className="legend-btn zoom" onClick={() => setResetKey((k) => k + 1)} title="重置视野">
           重置视野
         </button>
       </div>
       <div className="graph-plot" ref={containerRef} />
       <div className="property-list">
-        {analyses.map((a) => (
-          <PropertyCard key={a.expression} analysis={a} />
+        {analyses.map((a, i) => (
+          <PropertyCard key={a.expression + '-' + i} analysis={a} />
         ))}
       </div>
     </div>

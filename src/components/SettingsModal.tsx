@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AISettings } from '../types';
 import { saveSettings as persistSettings } from '../core/settingsStore';
 
@@ -11,6 +11,10 @@ interface Props {
 
 export function SettingsModal({ open, settings, onClose, onSave }: Props) {
   const [form, setForm] = useState(settings);
+
+  useEffect(() => {
+    if (open) setForm(settings);
+  }, [open, settings]);
 
   if (!open) return null;
   return (

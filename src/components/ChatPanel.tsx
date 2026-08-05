@@ -1,23 +1,47 @@
 import { useState } from 'react';
 import type { ChatMessage } from '../types';
 import { MessageBubble } from './MessageBubble';
+import { validateExpression } from '../core/mathUtil';
 
 interface Props {
   messages: ChatMessage[];
   loading: boolean;
+  error?: string | null;
   onSend: (text: string) => void;
+  onRetry?: () => void;
   onAddFunction?: (expr: string) => void;
 }
 
-export function ChatPanel({ messages, loading, onSend, onAddFunction }: Props) {
+export function ChatPanel({
+  messages,
+  loading,
+  error,
+  onSend,
+  onRetry,
+  onAddFunction,
+}: Props) {
   const [input, setInput] = useState('');
   const [funcInput, setFuncInput] = useState('');
+  const [funcError, setFuncError] = useState<string | null>(null);
 
   const submit = () => {
     const text = input.trim();
     if (!text || loading) return;
     onSend(text);
     setInput('');
+  };
+
+  const addFunction = () => {
+    const expr = funcInput.trim();
+    if (!expr) return;
+    const err = validateExpression(expr);
+    if (err) {
+      setFuncError(err);
+      return;
+    }
+    setFuncError(null);
+    onAddFunction?.(expr);
+    setFuncInput('');
   };
 
   return (
@@ -36,23 +60,37 @@ export function ChatPanel({ messages, loading, onSend, onAddFunction }: Props) {
         {loading && <div className="bubble ai bubble-thinking">思考中…</div>}
       </div>
       <div className="chat-input-area">
+        {error && (
+          <div className="chat-error-banner">
+            <span>⚠️ {error}</span>
+            {onRetry && (
+              <button className="btn" onClick={onRetry} disabled={loading}>
+                重试
+              </button>
+            )}
+          </div>
+        )}
         {onAddFunction && (
           <div className="func-input-row">
             <span className="func-input-label">f(x)=</span>
             <input
-              className="func-input"
+              className={`func-input${funcError ? ' invalid' : ''}`}
               value={funcInput}
               placeholder="手动输入函数，如 x^2 - 2x - 3（回车即画图）"
-              onChange={(e) => setFuncInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && funcInput.trim()) {
-                  onAddFunction(funcInput.trim());
-                  setFuncInput('');
+              onChange={(e) => {
+                setFuncInput(e.target.value);
+                if (funcError) {
+                  const err = validateExpression(e.target.value.trim());
+                  setFuncError(err);
                 }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') addFunction();
               }}
             />
           </div>
         )}
+        {funcError && <div className="func-input-error">{funcError}</div>}
         <textarea
           className="chat-input"
           value={input}
