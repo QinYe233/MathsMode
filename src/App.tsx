@@ -1,12 +1,26 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from './hooks/useChat';
 import { ChatPanel } from './components/ChatPanel';
-import { GraphPanel } from './components/GraphPanel';
 import { HistorySidebar } from './components/HistorySidebar';
 import { SettingsModal } from './components/SettingsModal';
+import { DrawerPanel, DrawerTab } from './components/DrawerPanel';
 import { loadSettings } from './core/settingsStore';
 import type { AISettings, FunctionAnalysis } from './types';
 import { analyzeFunction } from './core/analysisEngine';
+
+const DRAWER_KEY = 'mathmate.drawer.v1';
+const DRAWER_MIN = 300;
+const DRAWER_MAX = 720;
+
+function loadDrawerWidth(): number {
+  try {
+    const v = Number(localStorage.getItem(DRAWER_KEY));
+    if (Number.isFinite(v) && v >= DRAWER_MIN && v <= DRAWER_MAX) return v;
+  } catch {
+    /* ignore */
+  }
+  return 420;
+}
 
 export default function App() {
   const chat = useChat();
@@ -14,10 +28,22 @@ export default function App() {
   const [settings, setSettings] = useState<AISettings>(() => loadSettings());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [manualAnalyses, setManualAnalyses] = useState<FunctionAnalysis[]>([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerWidth, setDrawerWidthState] = useState<number>(loadDrawerWidth);
 
   const saveSettings = (s: AISettings) => {
     setSettings(s);
     chat.setSettings(s);
+  };
+
+  const setDrawerWidth = (w: number) => {
+    const c = Math.min(DRAWER_MAX, Math.max(DRAWER_MIN, Math.round(w)));
+    setDrawerWidthState(c);
+    try {
+      localStorage.setItem(DRAWER_KEY, String(c));
+    } catch {
+      /* ignore */
+    }
   };
 
   const addManualFunction = (expr: string) => {
@@ -25,19 +51,34 @@ export default function App() {
     setManualAnalyses((prev) => [...prev.filter((x) => x.expression !== expr), a]);
   };
 
-  const analysisKey = [
+  const analysesKey = [
     ...chat.messages.flatMap((m) => m.analysis ?? []),
     ...manualAnalyses,
   ]
     .map((a) => a.expression)
     .join('|');
+
   const visibleAnalyses = useMemo(
     () => [...chat.messages.flatMap((m) => m.analysis ?? []), ...manualAnalyses],
-    [analysisKey, manualAnalyses],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [analysesKey],
   );
 
+  // 自动展开：分析结果从无到有时打开抽屉
+  const prevAnalysesCount = useRef(0);
+  useEffect(() => {
+    const n = visibleAnalyses.length;
+    if (n > 0 && prevAnalysesCount.current === 0) setDrawerOpen(true);
+    prevAnalysesCount.current = n;
+  }, [visibleAnalyses.length]);
+
   return (
-    <div className="app">
+    <div
+      className="app"
+      style={{
+        gridTemplateColumns: drawerOpen ? `44px 1fr ${drawerWidth}px` : '44px 1fr',
+      }}
+    >
       <HistorySidebar
         sessions={chat.sessions}
         activeId={chat.activeId}
@@ -55,15 +96,17 @@ export default function App() {
         onRetry={chat.retry}
         onAddFunction={addManualFunction}
       />
-      <div className="right-panel">
-        <div className="right-panel-head">
-          <span>函数图像与特性</span>
-          <button className="icon-btn" onClick={() => setSettingsOpen(true)} title="AI 设置">
-            ⚙
-          </button>
-        </div>
-        <GraphPanel analyses={visibleAnalyses} />
-      </div>
+      {drawerOpen ? (
+        <DrawerPanel
+          analyses={visibleAnalyses}
+          width={drawerWidth}
+          onResize={setDrawerWidth}
+          onClose={() => setDrawerOpen(false)}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+      ) : (
+        <DrawerTab onClick={() => setDrawerOpen(true)} />
+      )}
       <SettingsModal
         open={settingsOpen}
         settings={settings}

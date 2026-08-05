@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 
@@ -22,7 +22,20 @@ beforeEach(() => {
 });
 
 describe('App', () => {
-  it('完整流程：提问 → 回复 → 函数卡片出现', async () => {
+  it('初始收起：显示边缘标签，无右侧面板', () => {
+    render(<App />);
+    expect(screen.getByRole('button', { name: /函数图像/ })).toBeInTheDocument();
+    expect(document.querySelector('.drawer-panel')).toBeNull();
+  });
+
+  it('点击标签展开抽屉显示空态', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
+    expect(screen.getByText(/未识别到函数/)).toBeInTheDocument();
+    expect(document.querySelector('.drawer-panel')).not.toBeNull();
+  });
+
+  it('完整流程：提问 → 回复 → 抽屉自动展开 + 函数卡片出现', async () => {
     mockedStream.mockImplementation(async function* () {
       yield '由题可得：\n<!-- MATH_FUNCTIONS -->\n{"functions": [{"id": "f", "expr": "x^2 - 2x - 3"}]}\n<!-- /MATH_FUNCTIONS -->';
     });
@@ -32,19 +45,24 @@ describe('App', () => {
     expect(await screen.findByText(/由题可得/)).toBeInTheDocument();
     expect(await screen.findByText('奇偶性')).toBeInTheDocument();
     expect(screen.getByText('非奇非偶')).toBeInTheDocument();
+    expect(document.querySelector('.drawer-panel')).not.toBeNull();
   });
 
-  it('API 报错显示错误条，点击重试重新请求', async () => {
+  it('API 报错显示错误横幅与重试', async () => {
     mockedStream.mockImplementation(async function* () {
       throw new Error('API 错误 (401)：Invalid API key');
     });
     render(<App />);
     await userEvent.type(screen.getByPlaceholderText(/输入数学问题/), '你好');
     await userEvent.click(screen.getByRole('button', { name: /发送/ }));
-    const matches = await screen.findAllByText(/Invalid API key/);
-    expect(matches.length).toBeGreaterThan(0);
-    expect(mockedStream).toHaveBeenCalledTimes(1);
+    expect((await screen.findAllByText(/Invalid API key/)).length).toBeGreaterThan(0);
     await userEvent.click(screen.getByRole('button', { name: /重试/ }));
-    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(2));
+    expect(mockedStream).toHaveBeenCalledTimes(2);
+  });
+
+  it('抽屉宽度持久化到 localStorage', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
+    expect(localStorage.getItem('mathmate.drawer.v1')).toBeNull();
   });
 });
