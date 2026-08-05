@@ -1,4 +1,5 @@
 import { parse } from 'mathjs';
+import type { MathNode } from 'mathjs';
 import { findAllRoots } from './roots';
 import { makeEvaluator } from '../mathUtil';
 import type { Interval } from '../../types';
@@ -7,7 +8,6 @@ export const INF = Number.POSITIVE_INFINITY;
 
 const WIN_LO = -1000;
 const WIN_HI = 1000;
-const PROBE = 2000;
 
 interface Constraint {
   sub: string;
@@ -21,99 +21,105 @@ export function inferDomain(expr: string, domainStr?: string): Interval[] {
   }
   const constraints = collectConstraints(expr);
   if (constraints.length === 0) {
-    return [allReals()];
+    return [{ lo: -INF, hi: INF, loOpen: true, hiOpen: true }];
   }
-  let valid: Interval[] = [allReals()];
+  let valid: Interval[] = [{ lo: -INF, hi: INF, loOpen: true, hiOpen: true }];
   for (const c of constraints) {
     const evalSub = makeEvaluator(c.sub);
+    // 分区点 = 子表达式零点 ∪ 子表达式极点（即 1/sub 的零点）∪ 线性解析解：
+    // 极点是符号跳变点，不分区会得到错误区间（如 sqrt(1/x) 会把负数误收进来）
     const roots = findAllRoots(evalSub, WIN_LO, WIN_HI, { gridPoints: 4000 });
-    const regions = c.kind === 'neq' ? neqRegions(roots) : signRegions(c.kind, evalSub, roots);
-    valid = mergeIntervals(intersectIntervals(valid, mergeIntervals(regions)));
+    const poles = findAllRoots(
+      (x) => {
+        const v = evalSub(x);
+        return v === 0 ? 0 : 1 / v;
+      },
+      WIN_LO,
+      WIN_HI,
+      { gridPoints: 4000 },
+    );
+    // neq 约束用解析解覆盖窗口外的线性极点（如 1/(x-2000)）
+    const analytic = c.kind === 'neq' ? analyticLinearRoot(c.sub) : null;
+    const points = dedupeSorted([
+      ...roots,
+      ...poles,
+      ...(analytic === null ? [] : [analytic]),
+    ]);
+
+    if (c.kind === 'neq') {
+      valid = intersectIntervals(valid, neqRegions(points));
+      continue;
+    }
+
+    const closed = c.kind === 'geq';
+    const regions: Interval[] = [];
+    if (points.length === 0) {
+      // 无分区点：整个数轴符号一致，按窗口外探针判定
+      if (signOf(evalSub, 2000) > 0) {
+        regions.push({ lo: -INF, hi: INF, loOpen: true, hiOpen: true });
+      }
+    } else {
+      if (signOf(evalSub, -2000) > 0) {
+        regions.push({ lo: -INF, hi: points[0], loOpen: true, hiOpen: !closed });
+      }
+      for (let i = 0; i + 1 < points.length; i++) {
+        const a = points[i];
+        const b = points[i + 1];
+        const mid = (a + b) / 2;
+        if (signOf(evalSub, mid) > 0) {
+          regions.push({ lo: a, hi: b, loOpen: !closed, hiOpen: !closed });
+        }
+      }
+      if (signOf(evalSub, 2000) > 0) {
+        regions.push({ lo: points[points.length - 1], hi: INF, loOpen: !closed, hiOpen: true });
+      }
+    }
+    valid = intersectIntervals(valid, regions);
   }
   return valid;
 }
 
-function allReals(): Interval {
-  return { lo: -INF, hi: INF, loOpen: true, hiOpen: true };
+function signOf(evalSub: (x: number) => number, x: number): number {
+  const v = evalSub(x);
+  return Number.isFinite(v) && v > 0 ? 1 : -1;
 }
 
-// neq：排除子表达式零点。单个根时极点唯一且可见，域可安全延拓到 ±∞；
-// 多个根时窗口外可能还有未见的极点，域只报告搜索窗口内已确认的部分。
-function neqRegions(roots: number[]): Interval[] {
-  if (roots.length === 0) return [allReals()];
-  if (roots.length === 1) {
-    return [
-      { lo: -INF, hi: roots[0], loOpen: true, hiOpen: true },
-      { lo: roots[0], hi: INF, loOpen: true, hiOpen: true },
-    ];
-  }
-  const regions: Interval[] = [];
-  regions.push({ lo: WIN_LO, hi: roots[0], loOpen: true, hiOpen: true });
-  for (let i = 0; i + 1 < roots.length; i++) {
-    regions.push({ lo: roots[i], hi: roots[i + 1], loOpen: true, hiOpen: true });
-  }
-  regions.push({ lo: roots[roots.length - 1], hi: WIN_HI, loOpen: true, hiOpen: true });
-  return regions;
+function analyticLinearRoot(sub: string): number | null {
+  // mathjs toString 会给分式分母加括号：1/(x-2000) 的分母是 "(x - 2000)"
+  let t = sub.replace(/\s+/g, '');
+  if (t.startsWith('(') && t.endsWith(')')) t = t.slice(1, -1);
+  if (t === 'x') return 0;
+  let m = t.match(/^x([+-]\d+(?:\.\d+)?)$/);
+  if (m) return -parseFloat(m[1]);
+  m = t.match(/^([+-]?\d+(?:\.\d+)?)\*x([+-]\d+(?:\.\d+)?)?$/);
+  if (m) return m[2] ? -parseFloat(m[2]) / parseFloat(m[1]) : 0;
+  return null;
 }
 
-// gt/geq：按根切分区间并探测符号，仅保留满足约束的区间。
-// geq 在根处取等号成立，故端点闭合；gt 端点开。
-function signRegions(kind: 'geq' | 'gt', evalSub: (x: number) => number, roots: number[]): Interval[] {
-  const closed = kind === 'geq';
-  const probe = (x: number): number => {
-    const v = evalSub(x);
-    return Number.isFinite(v) ? v : NaN;
-  };
-  const positive = (x: number): boolean => probe(x) > 0;
-  const regions: Interval[] = [];
-  if (positive(-PROBE)) {
-    regions.push({ lo: -INF, hi: roots[0] ?? INF, loOpen: true, hiOpen: !closed });
+function dedupeSorted(xs: number[]): number[] {
+  const sorted = xs.filter(Number.isFinite).sort((p, q) => p - q);
+  const out: number[] = [];
+  for (const x of sorted) {
+    if (out.length === 0 || Math.abs(x - out[out.length - 1]) > 1e-6) out.push(x);
   }
-  for (let i = 0; i < roots.length; i++) {
-    const a = roots[i];
-    const b = roots[i + 1] ?? INF;
-    const mid = Number.isFinite(a) && Number.isFinite(b) ? (a + b) / 2 : Number.isFinite(a) ? a + 1 : a - 1;
-    if (positive(mid)) {
-      regions.push({ lo: a, hi: b, loOpen: !closed, hiOpen: !closed });
-    }
-  }
-  if (positive(PROBE)) {
-    regions.push({
-      lo: roots.length ? roots[roots.length - 1] : -INF,
-      hi: INF,
-      loOpen: !closed,
-      hiOpen: true,
-    });
-  }
-  return regions;
-}
-
-// 合并相邻或重叠区间（含去重），如 (-∞, 0] 与 [0, +∞) 并成 (-∞, +∞)。
-function mergeIntervals(ivs: Interval[]): Interval[] {
-  if (ivs.length < 2) return ivs;
-  const sorted = [...ivs].sort((a, b) => a.lo - b.lo || Number(a.loOpen) - Number(b.loOpen));
-  const out: Interval[] = [];
-  let cur: Interval = { ...sorted[0] };
-  for (let i = 1; i < sorted.length; i++) {
-    const n = sorted[i];
-    const overlap = n.lo < cur.hi || (n.lo === cur.hi && (!n.loOpen || !cur.hiOpen));
-    if (!overlap) {
-      out.push(cur);
-      cur = { ...n };
-      continue;
-    }
-    if (n.hi > cur.hi) {
-      cur.hi = n.hi;
-      cur.hiOpen = n.hiOpen;
-    } else if (n.hi === cur.hi) {
-      cur.hiOpen = cur.hiOpen || n.hiOpen;
-    }
-    if (n.lo === cur.lo) {
-      cur.loOpen = cur.loOpen && n.loOpen;
-    }
-  }
-  out.push(cur);
   return out;
+}
+
+// neq：排除孤立点。多分区点（如 tan 的众多极点）时尾部裁剪到搜索窗口
+// （窗口外是否还有极点不可验证，保守起见不声称 ±∞）；
+// 单个分区点时允许 ±∞ 尾部——线性解析解保证了窗口外无其他零点。
+function neqRegions(points: number[]): Interval[] {
+  const regions: Interval[] = [];
+  let prev = -INF;
+  const clipTail = points.length > 1;
+  for (let i = 0; i < points.length; i++) {
+    const r = points[i];
+    const lo = clipTail && i === 0 ? Math.max(prev, WIN_LO) : prev;
+    regions.push({ lo, hi: r, loOpen: true, hiOpen: true });
+    prev = r;
+  }
+  regions.push({ lo: prev, hi: clipTail ? WIN_HI : INF, loOpen: true, hiOpen: true });
+  return regions;
 }
 
 function intersectIntervals(a: Interval[], b: Interval[]): Interval[] {
@@ -133,14 +139,13 @@ function intersectIntervals(a: Interval[], b: Interval[]): Interval[] {
 
 export function inDomain(x: number, domain: Interval[]): boolean {
   return domain.some(
-    (iv) =>
-      (iv.loOpen ? x > iv.lo : x >= iv.lo) && (iv.hiOpen ? x < iv.hi : x <= iv.hi),
+    (iv) => (iv.loOpen ? x > iv.lo : x >= iv.lo) && (iv.hiOpen ? x < iv.hi : x <= iv.hi),
   );
 }
 
 function collectConstraints(expr: string): Constraint[] {
   const out: Constraint[] = [];
-  let node: any;
+  let node: MathNode;
   try {
     node = parse(expr);
   } catch {
@@ -155,6 +160,10 @@ function collectConstraints(expr: string): Constraint[] {
       n.args?.forEach(walk);
     } else if (n.type === 'OperatorNode' && n.op === '/' && n.args?.[1]) {
       out.push({ sub: n.args[1].toString(), kind: 'neq' });
+      n.args.forEach(walk);
+    } else if (n.type === 'OperatorNode' && n.op === '^' && n.args?.[1] && n.args[1].type === 'ConstantNode') {
+      const exp = Number(n.args[1].value);
+      if (exp < 0) out.push({ sub: n.args[0].toString(), kind: 'neq' });
       n.args.forEach(walk);
     } else {
       n.forEach?.(walk);
@@ -183,13 +192,11 @@ export function parseDomainString(s: string): Interval[] | null {
 export function fmtNum(x: number): string {
   if (x === -INF) return '−∞';
   if (x === INF) return '+∞';
-  const v = Math.round(x * 1e4) / 1e4;
-  return v < 0 ? '−' + String(-v) : String(v);
+  const r = Math.round(x * 1e4) / 1e4;
+  return String(r === 0 ? 0 : r).replace('-', '−');
 }
 
-export function fmtInterval(iv: Interval): string;
-export function fmtInterval(iv: Interval[]): string[];
-export function fmtInterval(iv: Interval | Interval[]): string | string[] {
-  if (Array.isArray(iv)) return iv.map((i) => fmtInterval(i));
-  return `${iv.loOpen ? '(' : '['}${fmtNum(iv.lo)}, ${fmtNum(iv.hi)}${iv.hiOpen ? ')' : ']'}`;
+export function fmtInterval(iv: Interval | Interval[]): string[] {
+  const list = Array.isArray(iv) ? iv : [iv];
+  return list.map((x) => `${x.loOpen ? '(' : '['}${fmtNum(x.lo)}, ${fmtNum(x.hi)}${x.hiOpen ? ')' : ']'}`);
 }

@@ -19,6 +19,24 @@ describe('inferDomain', () => {
     expect(ivs.every((iv) => Math.abs(Math.cos((iv.lo + iv.hi) / 2)) > 0.5)).toBe(true);
     expect(ivs[0].lo).toBeLessThan(-1.5);
   });
+  it('sqrt(1/x) 排除负数（子表达式极点分区）', () => {
+    expect(fmtInterval(inferDomain('sqrt(1/x)'))).toEqual(['(0, +∞)']);
+  });
+  it('sqrt(x/(x-1)) 分式符号', () => {
+    expect(fmtInterval(inferDomain('sqrt(x/(x - 1))'))).toEqual(['(−∞, 0]', '(1, +∞)']);
+  });
+  it('log(x^2 - 1) 多区间', () => {
+    expect(fmtInterval(inferDomain('log(x^2 - 1)'))).toEqual(['(−∞, −1)', '(1, +∞)']);
+  });
+  it('1/(x-2000) 窗口外线性极点（解析解）', () => {
+    expect(fmtInterval(inferDomain('1/(x - 2000)'))).toEqual(['(−∞, 2000)', '(2000, +∞)']);
+  });
+  it('交叉约束交集 sqrt(x) + 1/x', () => {
+    expect(fmtInterval(inferDomain('sqrt(x) + 1/x'))).toEqual(['(0, +∞)']);
+  });
+  it('空定义域（sqrt(-x^2-1)）', () => {
+    expect(inferDomain('sqrt(-x^2 - 1)')).toEqual([]);
+  });
 });
 
 describe('inDomain', () => {
