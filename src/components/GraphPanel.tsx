@@ -3,7 +3,7 @@ import functionPlot from 'function-plot';
 import type { FunctionAnalysis } from '../types';
 import { PropertyCard } from './PropertyCard';
 
-const COLORS = ['#4da3ff', '#ffb454', '#57d98a', '#ff6b6b', '#c678dd', '#5ccfe6'];
+const COLORS = ['#2563eb', '#f59e0b', '#16a34a', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
