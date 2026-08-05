@@ -9,12 +9,23 @@ export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [resetKey, setResetKey] = useState(0);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      setSize({ w: el.clientWidth, h: el.clientHeight });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [analyses.length]);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el || analyses.length === 0) return;
-    const width = el.clientWidth || 400;
-    const height = Math.max(el.clientHeight || 340, 260);
+    const width = size?.w || el.clientWidth || 400;
+    const height = Math.max(size?.h || el.clientHeight || 340, 260);
     const visible = analyses.filter((a) => !hidden[a.expression]);
     const viewBox = autoView(analyses);
     try {
@@ -60,7 +71,7 @@ export function GraphPanel({ analyses }: { analyses: FunctionAnalysis[] }) {
     } catch {
       /* 画图失败不崩溃 */
     }
-  }, [analyses, hidden, resetKey]);
+  }, [analyses, hidden, resetKey, size]);
 
   if (analyses.length === 0) {
     return <div className="graph-empty">未识别到函数，可在左侧手动输入，如 f(x)=x^2 - 2x - 3</div>;

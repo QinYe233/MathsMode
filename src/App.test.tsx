@@ -60,9 +60,17 @@ describe('App', () => {
     expect(mockedStream).toHaveBeenCalledTimes(2);
   });
 
-  it('抽屉宽度持久化到 localStorage', async () => {
+  it('抽屉关闭时仍可打开设置', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: '⚙' }));
+    expect(document.querySelector('.modal')).not.toBeNull();
+  });
+
+  it('抽屉宽度从 localStorage 恢复', async () => {
+    localStorage.setItem('mathmate.drawer.v1', '500');
     render(<App />);
     await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
-    expect(localStorage.getItem('mathmate.drawer.v1')).toBeNull();
+    const app = document.querySelector('.app') as HTMLElement;
+    expect(app.style.gridTemplateColumns).toBe('44px 1fr 500px');
   });
 });

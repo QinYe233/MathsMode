@@ -7,10 +7,10 @@ interface Props {
   width: number;
   onResize: (w: number) => void;
   onClose: () => void;
-  onOpenSettings: () => void;
+  onResizeEnd?: () => void;
 }
 
-export function DrawerPanel({ analyses, width, onResize, onClose, onOpenSettings }: Props) {
+export function DrawerPanel({ analyses, width, onResize, onClose, onResizeEnd }: Props) {
   const dragRef = useRef<{ startX: number; startW: number } | null>(null);
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -24,6 +24,7 @@ export function DrawerPanel({ analyses, width, onResize, onClose, onOpenSettings
   };
   const onPointerUp = () => {
     dragRef.current = null;
+    onResizeEnd?.();
   };
 
   return (
@@ -38,14 +39,9 @@ export function DrawerPanel({ analyses, width, onResize, onClose, onOpenSettings
       />
       <div className="right-panel-head">
         <span>函数图像与特性</span>
-        <div>
-          <button className="icon-btn" onClick={onOpenSettings} title="AI 设置">
-            ⚙
-          </button>
-          <button className="icon-btn" onClick={onClose} title="收起">
-            »
-          </button>
-        </div>
+        <button className="icon-btn" onClick={onClose} title="收起">
+          »
+        </button>
       </div>
       <GraphPanel analyses={analyses} />
     </div>

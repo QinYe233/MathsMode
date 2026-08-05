@@ -39,8 +39,11 @@ export default function App() {
   const setDrawerWidth = (w: number) => {
     const c = Math.min(DRAWER_MAX, Math.max(DRAWER_MIN, Math.round(w)));
     setDrawerWidthState(c);
+  };
+
+  const persistDrawerWidth = () => {
     try {
-      localStorage.setItem(DRAWER_KEY, String(c));
+      localStorage.setItem(DRAWER_KEY, String(drawerWidth));
     } catch {
       /* ignore */
     }
@@ -65,7 +68,11 @@ export default function App() {
   );
 
   // 自动展开：分析结果从无到有时打开抽屉
-  const prevAnalysesCount = useRef(0);
+  const initialCount = [
+    ...chat.messages.flatMap((m) => m.analysis ?? []),
+    ...manualAnalyses,
+  ].length;
+  const prevAnalysesCount = useRef(initialCount);
   useEffect(() => {
     const n = visibleAnalyses.length;
     if (n > 0 && prevAnalysesCount.current === 0) setDrawerOpen(true);
@@ -95,6 +102,7 @@ export default function App() {
         onSend={chat.send}
         onRetry={chat.retry}
         onAddFunction={addManualFunction}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
       {drawerOpen ? (
         <DrawerPanel
@@ -102,7 +110,7 @@ export default function App() {
           width={drawerWidth}
           onResize={setDrawerWidth}
           onClose={() => setDrawerOpen(false)}
-          onOpenSettings={() => setSettingsOpen(true)}
+          onResizeEnd={persistDrawerWidth}
         />
       ) : (
         <DrawerTab onClick={() => setDrawerOpen(true)} />

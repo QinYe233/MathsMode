@@ -10,6 +10,7 @@ interface Props {
   onSend: (text: string) => void;
   onRetry?: () => void;
   onAddFunction?: (expr: string) => void;
+  onOpenSettings?: () => void;
 }
 
 export function ChatPanel({
@@ -19,6 +20,7 @@ export function ChatPanel({
   onSend,
   onRetry,
   onAddFunction,
+  onOpenSettings,
 }: Props) {
   const [input, setInput] = useState('');
   const [funcInput, setFuncInput] = useState('');
@@ -46,6 +48,14 @@ export function ChatPanel({
 
   return (
     <div className="chat-panel">
+      {onOpenSettings && (
+        <div className="chat-head">
+          <span>数学学习助手</span>
+          <button className="icon-btn" onClick={onOpenSettings} title="AI 设置">
+            ⚙
+          </button>
+        </div>
+      )}
       <div className="chat-messages">
         {messages.length === 0 && (
           <div className="chat-empty">
