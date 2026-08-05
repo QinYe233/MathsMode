@@ -14,24 +14,46 @@ export function findAllRoots(
   const { tolerance, gridPoints } = { ...DEFAULTS, ...options };
   const roots: number[] = [];
 
+  // 去重阈值 1e-6：小于该间距的两个真实根会被合并（罕见，接受为已知限制）
   const push = (r: number) => {
     if (!Number.isFinite(r)) return;
     if (roots.some((p) => Math.abs(p - r) < 1e-6)) return;
     roots.push(r);
   };
 
-  const verify = (r: number): boolean => {
-    const eps = 1e-6;
-    const scale = Math.max(1, Math.abs(f(r + eps)), Math.abs(f(r - eps)));
-    const val = Math.abs(f(r));
-    return val <= tolerance * scale * 10;
+  const localScale = (r: number): number => {
+    let s = 1;
+    for (const d of [1e-6, -1e-6]) {
+      const v = Math.abs(f(r + d));
+      if (Number.isFinite(v)) s = Math.max(s, v);
+    }
+    return s;
   };
 
+  // 穿越根校验：二分保证 |r - 根| <= tolerance/2，残差受斜率*容差约束，
+  // 用局部尺度放宽到 1e-3 倍，避免陡峭斜率的真根被误拒（斜率 1000 也通过）。
+  const verifyCrossing = (r: number): boolean => {
+    return Math.abs(f(r)) <= localScale(r) * 1e-3;
+  };
+
+  // 切点根校验：|f| 的最小值必须真正触零（浮点精度内），
+  // 仅“逼近零”的函数（如 x^2 + 5e-9）不算根。
+  const verifyTangency = (r: number): boolean => {
+    return Math.abs(f(r)) <= 1e-9 * Math.max(1, localScale(r));
+  };
+
+  const step = (hi - lo) / gridPoints;
   let prevX = lo;
   let prevY = f(lo);
+  let finiteCount = 0;
+  let zeroCount = 0;
   for (let i = 1; i <= gridPoints; i++) {
-    const x = lo + ((hi - lo) * i) / gridPoints;
+    const x = lo + step * i;
     const y = f(x);
+    if (Number.isFinite(y)) {
+      finiteCount++;
+      if (y === 0) zeroCount++;
+    }
     if (Number.isFinite(prevY) && Number.isFinite(y)) {
       if (prevY === 0) push(prevX);
       else if (y === 0) push(x);
@@ -60,41 +82,45 @@ export function findAllRoots(
             break;
           }
         }
-        if (converged && verify((a + b) / 2)) push((a + b) / 2);
+        if (converged && verifyCrossing((a + b) / 2)) push((a + b) / 2);
       }
-    } else if (Number.isFinite(y) && y === 0) {
-      push(x);
     }
     prevX = x;
     prevY = y;
   }
 
-  let cluster: number[] = [];
-  const flushCluster = () => {
-    if (cluster.length === 0) return;
-    const c = cluster[Math.floor(cluster.length / 2)];
-    const w = Math.max((hi - lo) / gridPoints, 1e-3);
-    let a = c - w;
-    let b = c + w;
-    for (let k = 0; k < 120; k++) {
-      const m1 = a + (b - a) / 3;
-      const m2 = b - (b - a) / 3;
-      if (Math.abs(f(m1)) < Math.abs(f(m2))) b = m2;
-      else a = m1;
-    }
-    const r = (a + b) / 2;
-    if (verify(r)) push(r);
-    cluster = [];
-  };
+  // 恒为零的函数处处是根，无意义——直接返回空
+  if (finiteCount > 0 && zeroCount === finiteCount) return [];
 
-  for (let i = 0; i <= gridPoints; i++) {
-    const x = lo + ((hi - lo) * i) / gridPoints;
+  // 切点检测：对每个同号网格区间，中点 |f| 若小于两端点，则可能是
+  // 局部极小触碰零（如 (x-0.05)^2，根不在网格点上也能发现）。
+  let prevX2 = lo;
+  let prevY2 = f(lo);
+  for (let i = 1; i <= gridPoints; i++) {
+    const x = lo + step * i;
     const y = f(x);
-    if (Number.isFinite(y) && Math.abs(y) < 1e-4) cluster.push(x);
-    else flushCluster();
+    if (Number.isFinite(prevY2) && Number.isFinite(y)) {
+      const m = (prevX2 + x) / 2;
+      const fm = f(m);
+      if (Number.isFinite(fm) && Math.abs(fm) < Math.min(Math.abs(prevY2), Math.abs(y))) {
+        const r = refineMin(f, prevX2, x);
+        if (verifyTangency(r)) push(r);
+      }
+    }
+    prevX2 = x;
+    prevY2 = y;
   }
-  flushCluster();
 
   roots.sort((p, q) => p - q);
   return roots;
+}
+
+function refineMin(f: (x: number) => number, a: number, b: number): number {
+  for (let k = 0; k < 120; k++) {
+    const m1 = a + (b - a) / 3;
+    const m2 = b - (b - a) / 3;
+    if (Math.abs(f(m1)) < Math.abs(f(m2))) b = m2;
+    else a = m1;
+  }
+  return (a + b) / 2;
 }

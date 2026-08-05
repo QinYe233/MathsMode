@@ -36,4 +36,27 @@ describe('findAllRoots', () => {
     within(roots, [-3 * Math.PI, -2 * Math.PI, -Math.PI, 0, Math.PI, 2 * Math.PI, 3 * Math.PI]);
     expect(roots.length).toBe(7);
   });
+  it('陡峭斜率根不被误拒（100x-1 在 0.01）', () => {
+    const f = (x: number) => 100 * x - 1;
+    const roots = findAllRoots(f, -100, 100);
+    within(roots, [0.01]);
+    expect(roots.every((r) => Math.abs(f(r)) < 1e-4)).toBe(true);
+  });
+  it('网格错位的切点根（(x-0.05)^2）', () => {
+    const f = (x: number) => (x - 0.05) * (x - 0.05);
+    const roots = findAllRoots(f, -100, 100);
+    within(roots, [0.05]);
+    expect(roots.every((r) => Math.abs(f(r)) < 1e-4)).toBe(true);
+  });
+  it('接近零但不触零的函数无根（x^2 + 5e-9）', () => {
+    expect(findAllRoots((x) => x * x + 5e-9, -100, 100)).toEqual([]);
+  });
+  it('恒为零函数不报任何根', () => {
+    expect(findAllRoots(() => 0, -100, 100)).toEqual([]);
+  });
+  it('根恰在左端点', () => {
+    const roots = findAllRoots((x) => x + 100, -100, 100);
+    within(roots, [-100]);
+    expect(roots.every((r) => Math.abs(r + 100) < 1e-4)).toBe(true);
+  });
 });
