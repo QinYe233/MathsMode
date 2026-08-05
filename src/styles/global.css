@@ -80,6 +80,9 @@ body {
 .legend-btn { background: var(--panel); border: 1px solid; border-radius: 12px; padding: 2px 10px; font-family: Consolas, monospace; font-size: 12px; cursor: pointer; }
 .legend-btn.off { opacity: 0.3; text-decoration: line-through; }
 .legend-btn.zoom { color: var(--text-dim) !important; border-color: var(--border) !important; }
+.legend-btn.danger { color: var(--danger) !important; border-color: var(--danger) !important; }
+.legend-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.vector-input-row { margin: 0 10px; }
 .graph-plot { flex: 1; min-height: 260px; }
 .graph-plot svg { display: block; margin: 0 auto; }
 .graph-empty { padding: 40px 16px; color: var(--text-dim); text-align: center; line-height: 2; }
