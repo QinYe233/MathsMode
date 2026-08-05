@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "d3-selection": "^3.0.0",
     "function-plot": "^1.23.0",
     "katex": "^0.16.11",
     "mathjs": "^13.0.0",

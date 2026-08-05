@@ -41,6 +41,13 @@ export interface FunctionDef {
   domain?: string;
 }
 
+export interface VectorDef {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
