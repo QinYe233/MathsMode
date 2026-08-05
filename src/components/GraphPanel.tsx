@@ -34,6 +34,10 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector }: Props) {
   }, [analyses.length, vectors.length]);
 
   useEffect(() => {
+    if (total === 0) setHidden({});
+  }, [total]);
+
+  useEffect(() => {
     const el = containerRef.current;
     if (!el || total === 0) return;
     const width = size?.w || el.clientWidth || 400;

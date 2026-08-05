@@ -90,4 +90,36 @@ describe('GraphPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: /清空绘图/ }));
     expect(onClear).toHaveBeenCalledTimes(1);
   });
+
+  it('清空后重新添加同表达式不再保持隐藏', async () => {
+    const { rerender } = render(
+      <GraphPanel
+        analyses={[analyzeFunction({ id: 'f', expr: 'x^2 - 2x - 3' })]}
+        vectors={[]}
+        onClear={() => {}}
+        onAddVector={() => null}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'x^2 - 2x - 3' }));
+    rerender(
+      <GraphPanel
+        analyses={[analyzeFunction({ id: 'f', expr: 'x^2 - 2x - 3' })]}
+        vectors={[]}
+        onClear={() => {}}
+        onAddVector={() => null}
+      />,
+    );
+    // 图例处于隐藏态
+    expect(screen.getByRole('button', { name: 'x^2 - 2x - 3' }).className).toContain('off');
+    rerender(<GraphPanel analyses={[]} vectors={[]} onClear={() => {}} onAddVector={() => null} />);
+    rerender(
+      <GraphPanel
+        analyses={[analyzeFunction({ id: 'f', expr: 'x^2 - 2x - 3' })]}
+        vectors={[]}
+        onClear={() => {}}
+        onAddVector={() => null}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'x^2 - 2x - 3' }).className).not.toContain('off');
+  });
 });
