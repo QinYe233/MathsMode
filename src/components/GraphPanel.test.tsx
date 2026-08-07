@@ -42,7 +42,7 @@ describe('GraphPanel', () => {
   it('向量以 vector 图元传入 functionPlot 且 skipTip', () => {
     render(<GraphPanel analyses={[]} vectors={V} onClear={() => {}} onAddVector={() => null} />);
     const call = mockedPlot.mock.calls[mockedPlot.mock.calls.length - 1][0];
-    expect(call.data).toContainEqual({ vector: [3, 2], color: '#2563eb', graphType: 'vector', skipTip: true });
+    expect(call.data).toContainEqual({ vector: [3, 2], color: '#2563eb', graphType: 'vector', skipTip: true, label: 'a' });
     expect(screen.getByRole('button', { name: 'a=(3,2)' })).toBeInTheDocument();
   });
 
