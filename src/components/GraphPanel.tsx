@@ -116,6 +116,18 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector, highlighte
             : []),
         ],
       });
+      // 轴标签移到轴线中段（贴近坐标轴本体，而非端点延长处）
+      const svg = el.querySelector('svg');
+      const xl = svg?.querySelector('text.x.axis-label');
+      xl?.setAttribute('x', String(width / 2));
+      xl?.setAttribute('text-anchor', 'middle');
+      const yl = svg?.querySelector('text.y.axis-label');
+      if (yl) {
+        yl.setAttribute('y', String(height / 2));
+        yl.setAttribute('text-anchor', 'middle');
+        // rotate 默认绕原点会把文字甩到右上角；改为绕自身位置旋转
+        yl.setAttribute('transform', `rotate(-90, 0, ${height / 2})`);
+      }
     } catch {
       /* 画图失败不崩溃 */
     }
