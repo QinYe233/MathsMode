@@ -131,7 +131,9 @@ export default function App() {
     <div
       className="app"
       style={{
-        gridTemplateColumns: drawerOpen ? `44px 1fr ${drawerWidth}px` : '44px 1fr',
+        gridTemplateColumns: drawerOpen
+          ? `${sidebarCollapsed ? '44px' : '260px'} 1fr ${drawerWidth}px`
+          : `${sidebarCollapsed ? '44px' : '260px'} 1fr`,
       }}
     >
       <HistorySidebar

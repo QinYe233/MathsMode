@@ -108,7 +108,7 @@ describe('App', () => {
     render(<App />);
     await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
     const app = document.querySelector('.app') as HTMLElement;
-    expect(app.style.gridTemplateColumns).toBe('44px 1fr 500px');
+    expect(app.style.gridTemplateColumns).toBe('260px 1fr 500px');
   });
 
   it('向量输入后出现图例，非法输入显示错误，修改输入清除错误', async () => {
