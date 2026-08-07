@@ -247,6 +247,10 @@ body {
 .graph-plot { flex: 0 0 auto; height: 456px; } /* 固定高度：不随窗口/聊天区伸缩，避免图像纵向拉伸变形 */
 .graph-plot svg { display: block; margin: 0 auto; }
 .graph-empty { padding: 40px 16px; color: var(--text-dim); text-align: center; line-height: 2; }
+
+/* 三个滚动区域（会话列表/聊天消息/属性列表）独立滚动但隐藏滚动条 */
+.chat-messages, .session-list, .property-list { scrollbar-width: none; -ms-overflow-style: none; }
+.chat-messages::-webkit-scrollbar, .session-list::-webkit-scrollbar, .property-list::-webkit-scrollbar { display: none; }
 .property-list {
   flex: 1 1 auto;
   min-height: 0;
@@ -256,7 +260,6 @@ body {
   border-radius: var(--radius-md);
   background: var(--panel-2);
   padding: 4px 0;
-  scrollbar-width: thin;
 }
 .property-card { padding: 10px 14px; border-bottom: 1px solid var(--border); }
 .property-card:last-child { border-bottom: none; }

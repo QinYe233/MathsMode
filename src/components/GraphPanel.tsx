@@ -114,7 +114,7 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector, highlighte
                   return [];
                 })
             : []),
-        ],
+        ].slice(0, 40), // 标注数量上限：防高频函数（如 x²sin(x)）极值/零点标注爆炸
       });
     } catch {
       /* 画图失败不崩溃 */

@@ -18,6 +18,13 @@ export function analyzeFunction(def: FunctionDef): FunctionAnalysis {
     { lo: -Infinity, hi: Infinity, loOpen: true, hiOpen: true },
   ]);
   const parity = safe(() => analyzeParity(f, domain), 'neither' as Parity);
+  const period = safe(() => analyzePeriod(expr, f, domain), undefined);
+
+  // 周期函数：仅在主周期 [0, T) 内求临界点/零点（性质每周期重复），
+  // 否则全区间扫描会产生成百上千个极值/零点（如 sin(x) 在 [-1000,1000] 有 636 个）。
+  const scanLo = period !== undefined ? 0 : -1000;
+  const scanHi = period !== undefined ? period : 1000;
+  const dropRight = (roots: number[]) => roots.filter((r) => r < scanHi - 1e-9);
 
   let monotonic: MonotonicSegment[] = [];
   let extrema: Extremum[] = [];
@@ -25,7 +32,7 @@ export function analyzeFunction(def: FunctionDef): FunctionAnalysis {
   if (fpExpr) {
     const rawp = makeEvaluator(fpExpr);
     const fprime = (x: number) => (Number.isFinite(rawp(x)) ? rawp(x) : NaN);
-    const critical = safe(() => findAllRoots(fprime, -1000, 1000), []);
+    const critical = safe(() => dropRight(findAllRoots(fprime, scanLo, scanHi)), []);
     const mono = safe(() => analyzeMonotonic(fprime, f, critical, domain), {
       segments: [],
       extrema: [],
@@ -35,11 +42,10 @@ export function analyzeFunction(def: FunctionDef): FunctionAnalysis {
   }
 
   const zeroPoints = safe(
-    () => findAllRoots(f, -1000, 1000).filter((z) => Math.abs(f(z)) < 1e-4),
+    () => dropRight(findAllRoots(f, scanLo, scanHi)).filter((z) => Math.abs(f(z)) < 1e-4),
     [],
   );
   const asymptotes = safe(() => analyzeAsymptotes(f, domain), [] as Asymptote[]);
-  const period = safe(() => analyzePeriod(expr, f, domain), undefined);
 
   const summary = buildSummary(parity, monotonic, extrema, asymptotes, period, zeroPoints, domain);
   return {
@@ -75,6 +81,7 @@ function buildSummary(
   const parts: string[] = [];
   parts.push(`定义域：${domain.map(fmtInterval).join(' ∪ ')}`);
   parts.push(`奇偶性：${parity === 'odd' ? '奇函数' : parity === 'even' ? '偶函数' : '非奇非偶'}`);
+  const suffix = period !== undefined ? '（每周期重复）' : '';
   if (monotonic.length) {
     const map = { inc: '递增', dec: '递减', const: '不变' } as const;
     const items = monotonic.map((s) => `${s.interval} 上${map[s.trend]}`);
@@ -82,7 +89,7 @@ function buildSummary(
       items.length <= 6
         ? items.join('，')
         : `${items.slice(0, 6).join('，')}…共 ${monotonic.length} 个区间`;
-    parts.push(`单调性：${text}`);
+    parts.push(`单调性：${text}${suffix}`);
   }
   if (extrema.length) {
     const items = extrema.map(
@@ -92,10 +99,10 @@ function buildSummary(
       items.length <= 6
         ? items.join('，')
         : `${items.slice(0, 6).join('，')}…共 ${extrema.length} 个`;
-    parts.push(`极值：${text}`);
+    parts.push(`极值：${text}${suffix}`);
   }
   if (zeroPoints.length) {
-    parts.push(`零点：x = ${zeroPoints.map((z) => round(z)).join('、')}`);
+    parts.push(`零点：x = ${zeroPoints.map((z) => round(z)).join('、')}${suffix}`);
   }
   if (asymptotes.length) {
     parts.push(`渐近线：${asymptotes.map((a) => a.value).join('，')}`);

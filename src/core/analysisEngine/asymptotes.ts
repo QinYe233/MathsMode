@@ -22,22 +22,32 @@ export function analyzeAsymptotes(f: (x: number) => number, domain: Interval[]):
   }
 
   for (const side of [1, -1] as const) {
-    const x1 = side * 1e8;
-    const x2 = side * 1e12;
-    const f1 = f(x1);
-    const f2 = f(x2);
-    if (!Number.isFinite(f1) || !Number.isFinite(f2)) continue;
-    if (Math.abs(f1 - f2) < 1e-4 && Math.abs(f1) < 1e6) {
-      out.push({ type: 'horizontal', value: `y = ${round(f1)}` });
+    // 多个远点采样，判断 f 是否收敛到水平线或斜直线
+    const xs = [1e8, 1e10, 1e12];
+    const pts = xs.map((x) => {
+      const v = f(side * x);
+      return { x: x * side, v };
+    });
+    if (pts.some((p) => !Number.isFinite(p.v))) continue;
+    // 水平渐近线：f 的远点取值彼此趋同
+    const vs = pts.map((p) => p.v);
+    if (
+      Math.abs(vs[0] - vs[1]) < 1e-4 &&
+      Math.abs(vs[1] - vs[2]) < 1e-4 &&
+      Math.abs(vs[2]) < 1e6
+    ) {
+      out.push({ type: 'horizontal', value: `y = ${round(vs[2])}` });
       continue;
     }
-    const k1 = f1 / x1;
-    const k2 = f2 / x2;
-    if (Number.isFinite(k1) && Number.isFinite(k2) && Math.abs(k1 - k2) < 1e-8 && Math.abs(k1) < 1e3) {
-      const b = f2 - k2 * x2;
-      if (Number.isFinite(b) && Math.abs(b) < 1e8) {
-        out.push({ type: 'oblique', value: formatOblique(k1, b) });
-      }
+    // 斜渐近线：k=f/x 稳定 且 截距 b=f−kx 收敛（振荡函数如 sin(x) 的 b 永不收敛，据此拒绝）
+    const ks = pts.map((p) => p.v / p.x);
+    if (Math.abs(ks[0] - ks[1]) >= 1e-8 || Math.abs(ks[1] - ks[2]) >= 1e-8 || Math.abs(ks[2]) >= 1e3) {
+      continue;
+    }
+    const k = ks[2];
+    const bs = pts.map((p) => p.v - k * p.x);
+    if (Math.abs(bs[0] - bs[1]) < 1e-3 && Math.abs(bs[1] - bs[2]) < 1e-3 && Math.abs(bs[2]) < 1e8) {
+      out.push({ type: 'oblique', value: formatOblique(k, bs[2]) });
     }
   }
   return out;
