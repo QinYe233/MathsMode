@@ -35,6 +35,7 @@
 }
 
 * { box-sizing: border-box; }
+html, body { overflow: hidden; } /* 禁用窗口级滚动：所有滚动只在会话列表/聊天/属性列表三区域内 */
 body {
   margin: 0;
   background: var(--bg);
@@ -46,6 +47,7 @@ body {
   display: grid;
   grid-template-columns: 44px 1fr;
   height: 100vh;
+  overflow: hidden; /* 防子元素撑破导致窗口级滚动条 */
 }
 
 /* 聊天区 */
