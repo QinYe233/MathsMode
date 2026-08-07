@@ -176,42 +176,46 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector, highlighte
   return (
     <div className="graph-panel">
       <div className="graph-toolbar">
-        {analyses.map((a, i) => (
-          <button
-            key={a.expression + '-' + i}
-            className={`legend-btn ${hidden[a.expression] ? 'off' : ''}${highlightedExpr === a.expression ? ' lit' : ''}`}
-            style={{ borderColor: COLORS[i % COLORS.length], color: COLORS[i % COLORS.length] }}
-            onClick={() => setHidden((h) => ({ ...h, [a.expression]: !h[a.expression] }))}
-            onMouseEnter={() => highlightCurve(i, true)}
-            onMouseLeave={() => highlightCurve(i, false)}
-          >
-            <span className="legend-dot" style={{ background: COLORS[i % COLORS.length] }} />
-            {a.expression}
+        <div className="graph-legend">
+          {analyses.map((a, i) => (
+            <button
+              key={a.expression + '-' + i}
+              className={`legend-btn ${hidden[a.expression] ? 'off' : ''}${highlightedExpr === a.expression ? ' lit' : ''}`}
+              style={{ borderColor: COLORS[i % COLORS.length], color: COLORS[i % COLORS.length] }}
+              onClick={() => setHidden((h) => ({ ...h, [a.expression]: !h[a.expression] }))}
+              onMouseEnter={() => highlightCurve(i, true)}
+              onMouseLeave={() => highlightCurve(i, false)}
+            >
+              <span className="legend-dot" style={{ background: COLORS[i % COLORS.length] }} />
+              {a.expression}
+            </button>
+          ))}
+          {vectors.map((v, i) => (
+            <button
+              key={v.id}
+              className={`legend-btn ${hidden[`v:${v.id}`] ? 'off' : ''}`}
+              style={{
+                borderColor: COLORS[(analyses.length + i) % COLORS.length],
+                color: COLORS[(analyses.length + i) % COLORS.length],
+              }}
+              onClick={() => setHidden((h) => ({ ...h, [`v:${v.id}`]: !h[`v:${v.id}`] }))}
+            >
+              <span
+                className="legend-dot"
+                style={{ background: COLORS[(analyses.length + i) % COLORS.length] }}
+              />
+              {v.name ? `${v.name}=(${v.x},${v.y})` : `(${v.x},${v.y})`}
+            </button>
+          ))}
+        </div>
+        <div className="graph-actions">
+          <button className="legend-btn zoom" onClick={() => setResetKey((k) => k + 1)} title="重置视野">
+            重置视野
           </button>
-        ))}
-        {vectors.map((v, i) => (
-          <button
-            key={v.id}
-            className={`legend-btn ${hidden[`v:${v.id}`] ? 'off' : ''}`}
-            style={{
-              borderColor: COLORS[(analyses.length + i) % COLORS.length],
-              color: COLORS[(analyses.length + i) % COLORS.length],
-            }}
-            onClick={() => setHidden((h) => ({ ...h, [`v:${v.id}`]: !h[`v:${v.id}`] }))}
-          >
-            <span
-              className="legend-dot"
-              style={{ background: COLORS[(analyses.length + i) % COLORS.length] }}
-            />
-            {v.name ? `${v.name}=(${v.x},${v.y})` : `(${v.x},${v.y})`}
+          <button className="legend-btn danger" onClick={onClear} disabled={total === 0} title="清空所有函数和向量">
+            清空绘图
           </button>
-        ))}
-        <button className="legend-btn zoom" onClick={() => setResetKey((k) => k + 1)} title="重置视野">
-          重置视野
-        </button>
-        <button className="legend-btn danger" onClick={onClear} disabled={total === 0} title="清空所有函数和向量">
-          清空绘图
-        </button>
+        </div>
       </div>
       {vectorInputRow}
       <div

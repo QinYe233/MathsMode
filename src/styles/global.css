@@ -133,7 +133,7 @@ body {
 .md-content { min-width: 0; }
 .md-content > :first-child { margin-top: 0; }
 .md-content > :last-child { margin-bottom: 0; }
-.md-content p { margin: 0.5em 0; }
+.md-content p { margin: 0.45em 0; }
 .md-content h1, .md-content h2, .md-content h3, .md-content h4, .md-content h5, .md-content h6 { margin: 1em 0 0.4em; line-height: 1.4; font-weight: 600; }
 .md-content h1 { font-size: 1.3em; }
 .md-content h2 { font-size: 1.2em; }
@@ -213,35 +213,56 @@ body {
 .drawer-tab:hover { background: #1d4ed8; }
 .right-panel-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; color: var(--text-dim); font-size: 13px; border-bottom: 1px solid var(--border); }
 .graph-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.graph-toolbar { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 10px; }
-.legend-btn { background: var(--panel); border: 1px solid; border-radius: 12px; padding: 2px 10px; font-family: var(--font-mono); font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; }
+.graph-toolbar { display: flex; gap: 6px; align-items: center; padding: 8px 10px; }
+.graph-legend { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+.graph-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+.legend-btn { background: var(--panel); border: 1px solid; border-radius: 999px; padding: 3px 12px; font-family: var(--font-mono); font-size: 11.5px; cursor: pointer; display: inline-flex; align-items: center; line-height: 1.6; transition: box-shadow 0.12s, transform 0.12s; }
+.legend-btn:hover { box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12); }
 .legend-dot {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-  margin-right: 6px; vertical-align: middle;
+  margin-right: 6px; vertical-align: middle; flex-shrink: 0;
 }
 .legend-btn.lit { box-shadow: 0 0 0 2px var(--accent); background: var(--accent-soft); }
 .function.curve-highlight .line { stroke-width: 3px !important; }
-.msg-fn-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.msg-fn-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
 .msg-fn-chip {
-  background: var(--accent-soft);
+  background: var(--panel);
   color: var(--accent);
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 10px;
   font-family: var(--font-mono);
   font-size: 12px;
   cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s;
 }
-.msg-fn-chip:hover { border-color: var(--accent); }
+.msg-fn-chip:hover { border-color: var(--accent); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.10); }
 .legend-btn.off { opacity: 0.3; text-decoration: line-through; }
 .legend-btn.zoom { color: var(--text-dim) !important; border-color: var(--border) !important; }
+.legend-btn.zoom:hover, .legend-btn.danger:hover { background: var(--panel-2); }
 .legend-btn.danger { color: var(--danger) !important; border-color: var(--danger) !important; }
 .legend-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.vector-input-row { margin: 0 10px; }
+.vector-input-row { margin: 0 10px; padding-top: 8px; border-top: 1px solid var(--border); }
 .graph-plot { flex: 1; min-height: 260px; }
 .graph-plot svg { display: block; margin: 0 auto; }
 .graph-empty { padding: 40px 16px; color: var(--text-dim); text-align: center; line-height: 2; }
-.property-list { max-height: 45%; overflow-y: auto; border-top: 1px solid var(--border); }
+.property-list {
+  flex: 0 1 auto;
+  max-height: 45%;
+  overflow-y: auto;
+  margin: 8px 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--panel-2);
+  padding: 4px 0;
+  scrollbar-width: thin;
+}
 .property-card { padding: 10px 14px; border-bottom: 1px solid var(--border); }
 .property-row { display: flex; gap: 12px; padding: 3px 0; font-size: 13px; }
 .property-row.focusable { cursor: pointer; border-radius: var(--radius-sm); padding-left: 6px; margin-left: -6px; }
