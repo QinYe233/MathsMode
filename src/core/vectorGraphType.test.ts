@@ -30,7 +30,7 @@ describe('vectorGraphType', () => {
     expect(line.getAttribute('x2')).toBe('130');
     expect(line.getAttribute('y2')).toBe('160');
     expect(line.getAttribute('stroke')).toBe('#2563eb');
-    expect(line.getAttribute('stroke-width')).toBe('2');
+    expect(line.getAttribute('stroke-width')).toBe('2.5');
   });
 
   it('箭头头部为填充同色的三角形 polygon', () => {

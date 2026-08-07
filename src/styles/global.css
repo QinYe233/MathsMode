@@ -49,9 +49,9 @@
   --accent-soft: rgba(91, 140, 255, 0.16);
   --danger: #f87171;
   --grid-line: rgba(139, 155, 180, 0.07);
-  --axis: #5f7193;             /* 函数图坐标轴线（深色） */
-  --axis-text: #8b9bb4;        /* 函数图刻度文字（深色） */
-  --axis-grid: rgba(139, 155, 180, 0.18); /* 函数图网格线（深色） */
+  --axis: #a8bcdd;             /* 函数图坐标轴线（深色，对比色） */
+  --axis-text: #b6c4dd;        /* 函数图刻度文字（深色） */
+  --axis-grid: rgba(139, 155, 180, 0.26); /* 函数图网格线（深色） */
   --code-bg: #0a0f1c;
   --code-fg: #d7e1f0;
   --code-inline-bg: #1c2942;

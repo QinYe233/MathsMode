@@ -32,7 +32,7 @@ export const vectorGraphTypeBuilder =
         .attr('x2', x2)
         .attr('y2', y2)
         .attr('stroke', d.color)
-        .attr('stroke-width', 2);
+        .attr('stroke-width', 2.5);
 
       const heads = select(this)
         .selectAll<SVGPolygonElement, VectorDatum>(':scope > polygon.vector-head')
@@ -47,7 +47,7 @@ export const vectorGraphTypeBuilder =
       }
       const ux = dx / len;
       const uy = dy / len;
-      const s = 9;
+      const s = 12;
       const tip = `${x2},${y2}`;
       const b1 = `${x2 - s * (ux * 0.9 - uy * 0.45)},${y2 - s * (uy * 0.9 + ux * 0.45)}`;
       const b2 = `${x2 - s * (ux * 0.9 + uy * 0.45)},${y2 - s * (uy * 0.9 - ux * 0.45)}`;
