@@ -37,30 +37,6 @@
   --font-mono: 'MapleMonoCN', Consolas, 'Courier New', monospace;
 }
 
-[data-theme='dark'] {
-  color-scheme: dark;
-  --bg: #0b1220;
-  --panel: #111a2c;
-  --panel-2: #16203a;
-  --text: #e6edf7;
-  --text-dim: #8b9bb4;
-  --border: #24314d;
-  --accent: #5b8cff;
-  --accent-soft: rgba(91, 140, 255, 0.16);
-  --danger: #f87171;
-  --grid-line: rgba(139, 155, 180, 0.07);
-  --axis: #f1f5f9;             /* 函数图坐标轴线（深色：近白） */
-  --axis-text: #dbe4f2;        /* 函数图刻度文字（深色） */
-  --axis-grid: rgba(139, 155, 180, 0.26); /* 函数图网格线（深色） */
-  --code-bg: #0a0f1c;
-  --code-fg: #d7e1f0;
-  --code-inline-bg: #1c2942;
-  --danger-bg: rgba(248, 113, 113, 0.12);
-  --danger-border: rgba(248, 113, 113, 0.4);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.55);
-}
 * { box-sizing: border-box; }
 body {
   margin: 0;

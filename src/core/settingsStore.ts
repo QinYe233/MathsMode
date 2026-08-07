@@ -7,7 +7,6 @@ export const defaultSettings: AISettings = {
   apiKey: '',
   model: 'gpt-4o-mini',
   stream: true,
-  theme: 'system',
 };
 
 export function loadSettings(): AISettings {

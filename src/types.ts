@@ -62,7 +62,6 @@ export interface AISettings {
   apiKey: string;
   model: string;
   stream: boolean;
-  theme: 'system' | 'light' | 'dark';
 }
 
 export interface Session {

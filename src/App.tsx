@@ -18,16 +18,6 @@ const DRAWER_KEY = 'mathmate.drawer.v1';
 const DRAWER_MIN = 300;
 const DRAWER_MAX = 720;
 
-function resolveTheme(t: AISettings['theme']): 'light' | 'dark' {
-  if (t === 'system') {
-    return typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
-  }
-  return t;
-}
-
 function loadDrawerWidth(): number {
   try {
     const v = Number(localStorage.getItem(DRAWER_KEY));
@@ -49,20 +39,10 @@ export default function App() {
   const [drawerWidth, setDrawerWidthState] = useState<number>(loadDrawerWidth);
   const [highlightedExpr, setHighlightedExpr] = useState<string | null>(null);
 
-  // 应用外观主题（含跟随系统的实时监听）
+  // 固定浅色主题（已移除深色模式）
   useEffect(() => {
-    document.documentElement.dataset.theme = resolveTheme(settings.theme);
-  }, [settings.theme]);
-
-  useEffect(() => {
-    if (settings.theme !== 'system') return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = () => {
-      document.documentElement.dataset.theme = resolveTheme('system');
-    };
-    mq.addEventListener?.('change', onChange);
-    return () => mq.removeEventListener?.('change', onChange);
-  }, [settings.theme]);
+    document.documentElement.dataset.theme = 'light';
+  }, []);
 
   const saveSettings = (s: AISettings) => {
     setSettings(s);

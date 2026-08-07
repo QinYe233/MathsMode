@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, beforeAll } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
@@ -30,23 +30,6 @@ function analysis(expression: string, summary: string) {
     summary,
   };
 }
-
-beforeAll(() => {
-  // jsdom 无 matchMedia：App 的"跟随系统"主题解析需要
-  Object.defineProperty(window, 'matchMedia', {
-    writable: true,
-    value: vi.fn().mockImplementation((q: string) => ({
-      matches: false,
-      media: q,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    })),
-  });
-});
 
 beforeEach(() => {
   localStorage.clear();
@@ -219,13 +202,5 @@ describe('App', () => {
     await userEvent.type(input, 'x^2');
     await userEvent.keyboard('{Enter}');
     expect(await screen.findByText('第二次总结')).toBeInTheDocument();
-  });
-
-  it('theme=dark 时在 html 上应用 data-theme=dark', async () => {
-    render(<App />);
-    await userEvent.click(screen.getByRole('button', { name: /AI 设置/ }));
-    await userEvent.click(screen.getByRole('radio', { name: /深色/ }));
-    await userEvent.click(screen.getByRole('button', { name: '保存' }));
-    expect(document.documentElement.dataset.theme).toBe('dark');
   });
 });

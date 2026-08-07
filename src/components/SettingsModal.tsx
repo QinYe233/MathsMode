@@ -55,22 +55,6 @@ export function SettingsModal({ open, settings, onClose, onSave }: Props) {
           />
           流式输出
         </label>
-        <div className="theme-group">
-          <span className="theme-label">外观</span>
-          <div className="theme-options">
-            {(['system', 'light', 'dark'] as const).map((t) => (
-              <label className="radio-row" key={t}>
-                <input
-                  type="radio"
-                  name="theme"
-                  checked={form.theme === t}
-                  onChange={() => setForm({ ...form, theme: t })}
-                />
-                {t === 'system' ? '跟随系统' : t === 'light' ? '浅色' : '深色'}
-              </label>
-            ))}
-          </div>
-        </div>
         <div className="modal-actions">
           <button className="btn" onClick={onClose}>
             取消
