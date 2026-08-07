@@ -68,7 +68,8 @@ describe('App', () => {
   it('点击标签展开抽屉显示空态', async () => {
     render(<App />);
     await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
-    expect(screen.getByText(/未识别到函数/)).toBeInTheDocument();
+    // DrawerPanel 为懒加载组件，需等待异步加载完成
+    expect(await screen.findByText(/未识别到函数/)).toBeInTheDocument();
     expect(document.querySelector('.drawer-panel')).not.toBeNull();
   });
 
