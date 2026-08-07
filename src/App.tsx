@@ -1,13 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from './hooks/useChat';
 import { ChatPanel } from './components/ChatPanel';
 import { HistorySidebar } from './components/HistorySidebar';
 import { SettingsModal } from './components/SettingsModal';
-import { DrawerPanel, DrawerTab } from './components/DrawerPanel';
+import { DrawerTab } from './components/DrawerTab';
 import { loadSettings } from './core/settingsStore';
 import { parseVector } from './core/mathUtil';
 import type { AISettings, FunctionAnalysis, VectorDef } from './types';
 import { analyzeFunction } from './core/analysisEngine';
+
+// 绘图面板（function-plot/d3）按需加载，避免拖慢首屏
+const DrawerPanel = lazy(() =>
+  import('./components/DrawerPanel').then((m) => ({ default: m.DrawerPanel })),
+);
 
 const DRAWER_KEY = 'mathmate.drawer.v1';
 const DRAWER_MIN = 300;
@@ -159,17 +164,28 @@ export default function App() {
         }}
       />
       {drawerOpen ? (
-        <DrawerPanel
-          analyses={visibleAnalyses}
-          vectors={vectorDefs}
-          width={drawerWidth}
-          onResize={setDrawerWidth}
-          onClose={() => setDrawerOpen(false)}
-          onResizeEnd={persistDrawerWidth}
-          onClear={handleClear}
-          onAddVector={addVector}
-          highlightedExpr={highlightedExpr}
-        />
+        <Suspense
+          fallback={
+            <div className="drawer-panel">
+              <div className="right-panel-head">
+                <span>函数图像与特性</span>
+              </div>
+              <div className="graph-empty">加载绘图模块…</div>
+            </div>
+          }
+        >
+          <DrawerPanel
+            analyses={visibleAnalyses}
+            vectors={vectorDefs}
+            width={drawerWidth}
+            onResize={setDrawerWidth}
+            onClose={() => setDrawerOpen(false)}
+            onResizeEnd={persistDrawerWidth}
+            onClear={handleClear}
+            onAddVector={addVector}
+            highlightedExpr={highlightedExpr}
+          />
+        </Suspense>
       ) : (
         <DrawerTab onClick={() => setDrawerOpen(true)} />
       )}

@@ -1,0 +1,5 @@
+首屏 JS: ['index-90apC8Bk.js', 'katex-Dc8nsIP1.js', 'math-CB00iX4x.js', 'react-D1XoC9M0.js']
+graph chunk 首屏加载: False
+打开抽屉后新增: ['DrawerPanel-DxqFuGVl.js']
+graph-panel: 1 legend-dot: 1
+console errors: 0
