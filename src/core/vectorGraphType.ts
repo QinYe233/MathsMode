@@ -5,7 +5,9 @@ import type { Chart, FunctionPlotDatum, FunctionPlotScale } from 'function-plot'
 interface VectorDatum extends FunctionPlotDatum {
   vector: [number, number];
   color: string;
+  label?: string;
 }
+
 
 export const vectorGraphTypeBuilder =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,6 +58,32 @@ export const vectorGraphTypeBuilder =
         .attr('points', `${tip} ${b1} ${b2}`)
         .attr('fill', d.color)
         .attr('stroke', d.color);
+
+      // 末端点：一个实心圆点标记（精确落在数据点）
+      const dots = select(this)
+        .selectAll<SVGCircleElement, VectorDatum>(':scope > circle.vector-dot')
+        .data([d]);
+      const dotsEnter = dots.enter().append('circle').attr('class', `vector-dot vector-dot-${d.index}`);
+      dots
+        .merge(dotsEnter)
+        .attr('cx', x2)
+        .attr('cy', y2)
+        .attr('r', 3.5)
+        .attr('fill', d.color);
+
+      // 坐标文字：显示在点的旁边（右侧；点在视野左边时放左侧），零偏移锚定数据点
+      const label = d.label ? `${d.label}(${vx},${vy})` : `(${vx},${vy})`;
+      const rightSide = x2 + 8 < (chart.meta.width ?? 400);
+      const labels = select(this)
+        .selectAll<SVGTextElement, VectorDatum>(':scope > text.vector-label')
+        .data([d]);
+      const labelsEnter = labels.enter().append('text').attr('class', `vector-label vector-label-${d.index}`);
+      labels
+        .merge(labelsEnter)
+        .attr('x', rightSide ? x2 + 8 : x2 - 8)
+        .attr('y', y2 + 4)
+        .attr('text-anchor', rightSide ? 'start' : 'end')
+        .text(label);
     });
 };
 

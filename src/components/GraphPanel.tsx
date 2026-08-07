@@ -79,6 +79,7 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector, highlighte
             color: COLORS[(visible.length + i) % COLORS.length],
             graphType: 'vector' as const,
             skipTip: true,
+            label: v.name || '',
           })),
         ] as never,
         annotations: [
@@ -113,15 +114,6 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector, highlighte
                   return [];
                 })
             : []),
-          ...visibleVectors.flatMap((v) => {
-            // 标签精确落在数据点，不做任何偏移（保证数据准确）
-            const tx = v.x;
-            const ty = v.y;
-            if (tx > viewBox.x[0] && tx < viewBox.x[1] && ty > viewBox.y[0] && ty < viewBox.y[1]) {
-              return [{ x: tx, y: ty, text: v.name ? `${v.name}(${v.x},${v.y})` : `(${v.x},${v.y})` }];
-            }
-            return [];
-          }),
         ],
       });
     } catch {
