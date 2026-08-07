@@ -11,6 +11,7 @@ interface Props {
   onRetry?: () => void;
   onAddFunction?: (expr: string) => void;
   onOpenSettings?: () => void;
+  onHighlight?: (expr: string) => void;
 }
 
 export function ChatPanel({
@@ -21,6 +22,7 @@ export function ChatPanel({
   onRetry,
   onAddFunction,
   onOpenSettings,
+  onHighlight,
 }: Props) {
   const [input, setInput] = useState('');
   const [funcInput, setFuncInput] = useState('');
@@ -78,6 +80,7 @@ export function ChatPanel({
               onRetry != null && i === messages.length - 1 && m.role === 'assistant' && !m.error
             }
             onRetry={onRetry}
+            onHighlight={onHighlight}
           />
         ))}
         {loading && <div className="bubble ai bubble-thinking">思考中…</div>}

@@ -42,6 +42,7 @@ export default function App() {
   const [vectorDefs, setVectorDefs] = useState<VectorDef[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerWidth, setDrawerWidthState] = useState<number>(loadDrawerWidth);
+  const [highlightedExpr, setHighlightedExpr] = useState<string | null>(null);
 
   // 应用外观主题（含跟随系统的实时监听）
   useEffect(() => {
@@ -150,6 +151,10 @@ export default function App() {
         onRetry={chat.retry}
         onAddFunction={addManualFunction}
         onOpenSettings={() => setSettingsOpen(true)}
+        onHighlight={(e) => {
+          setHighlightedExpr(e);
+          setDrawerOpen(true);
+        }}
       />
       {drawerOpen ? (
         <DrawerPanel
@@ -161,6 +166,7 @@ export default function App() {
           onResizeEnd={persistDrawerWidth}
           onClear={handleClear}
           onAddVector={addVector}
+          highlightedExpr={highlightedExpr}
         />
       ) : (
         <DrawerTab onClick={() => setDrawerOpen(true)} />

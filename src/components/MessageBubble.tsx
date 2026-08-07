@@ -162,12 +162,14 @@ export function MessageBubble({
   onCopy,
   onRetry,
   retryable,
+  onHighlight,
 }: {
   message: ChatMessage;
   streaming?: boolean;
   onCopy?: (text: string) => void;
   onRetry?: () => void;
   retryable?: boolean;
+  onHighlight?: (expr: string) => void;
 }) {
   return (
     <div className={`bubble ${message.role === 'assistant' ? 'ai' : 'user'}`}>
@@ -199,6 +201,20 @@ export function MessageBubble({
               ↻
             </button>
           )}
+        </div>
+      )}
+      {message.role === 'assistant' && message.functions && message.functions.length > 0 && (
+        <div className="msg-fn-chips">
+          {message.functions.map((f) => (
+            <button
+              key={f.id}
+              className="msg-fn-chip"
+              onClick={() => onHighlight?.(f.expr)}
+              title="在图像面板高亮此函数"
+            >
+              f(x)={f.expr}
+            </button>
+          ))}
         </div>
       )}
       {message.error && <div className="bubble-error">请求失败，请检查 API 配置后重试</div>}

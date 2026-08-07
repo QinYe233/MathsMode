@@ -11,9 +11,10 @@ interface Props {
   onResizeEnd?: () => void;
   onClear: () => void;
   onAddVector: (input: string) => string | null;
+  highlightedExpr?: string | null;
 }
 
-export function DrawerPanel({ analyses, vectors, width, onResize, onClose, onResizeEnd, onClear, onAddVector }: Props) {
+export function DrawerPanel({ analyses, vectors, width, onResize, onClose, onResizeEnd, onClear, onAddVector, highlightedExpr }: Props) {
   const dragRef = useRef<{ startX: number; startW: number } | null>(null);
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -46,7 +47,13 @@ export function DrawerPanel({ analyses, vectors, width, onResize, onClose, onRes
           »
         </button>
       </div>
-      <GraphPanel analyses={analyses} vectors={vectors} onClear={onClear} onAddVector={onAddVector} />
+      <GraphPanel
+        analyses={analyses}
+        vectors={vectors}
+        onClear={onClear}
+        onAddVector={onAddVector}
+        highlightedExpr={highlightedExpr}
+      />
     </div>
   );
 }

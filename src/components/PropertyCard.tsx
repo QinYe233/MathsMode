@@ -1,4 +1,7 @@
+import type { ReactNode } from 'react';
 import type { FunctionAnalysis, MonotonicSegment } from '../types';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 const TREND_LABEL: Record<MonotonicSegment['trend'], string> = {
   inc: '递增 ↑',
@@ -8,8 +11,37 @@ const TREND_LABEL: Record<MonotonicSegment['trend'], string> = {
 
 const PARITY_LABEL = { odd: '奇函数', even: '偶函数', neither: '非奇非偶' } as const;
 
-export function PropertyCard({ analysis }: { analysis: FunctionAnalysis }) {
-  const rows: { label: string; value: string }[] = [];
+interface Row {
+  label: string;
+  value: string;
+  focus?: number; // 存在则该行可点击聚焦（图上标点）
+}
+
+// 值字符串内嵌 $...$ 公式片段，此处分段渲染成 KaTeX
+function ValueWithMath({ text }: { text: string }) {
+  const parts: ReactNode[] = [];
+  const segs = text.split(/(\$[^$]+\$)/g);
+  segs.forEach((seg, i) => {
+    if (!seg) return;
+    if (seg.startsWith('$') && seg.endsWith('$') && seg.length > 2) {
+      const tex = seg.slice(1, -1);
+      const html = katex.renderToString(tex, { throwOnError: false, strict: false });
+      parts.push(<span key={i} dangerouslySetInnerHTML={{ __html: html }} />);
+    } else {
+      parts.push(<span key={i}>{seg}</span>);
+    }
+  });
+  return <>{parts}</>;
+}
+
+export function PropertyCard({
+  analysis,
+  onFocus,
+}: {
+  analysis: FunctionAnalysis;
+  onFocus?: (x: number) => void;
+}) {
+  const rows: Row[] = [];
   rows.push({
     label: '定义域',
     value: analysis.domain.map(fmt).join(' ∪ ') || '—',
@@ -27,9 +59,12 @@ export function PropertyCard({ analysis }: { analysis: FunctionAnalysis }) {
   });
   rows.push({
     label: '极值',
+    focus: analysis.extrema[0]?.x,
     value: analysis.extrema.length
       ? truncate(
-          analysis.extrema.map((e) => `x=${r3(e.x)} ${e.type === 'min' ? '最小' : '最大'} y=${r3(e.y)}`),
+          analysis.extrema.map(
+            (e) => `${e.type === 'min' ? '极小' : '极大'}值 $x=${r3(e.x)}, y=${r3(e.y)}$`,
+          ),
           analysis.extrema.length,
           '个',
         ).join('；')
@@ -45,15 +80,24 @@ export function PropertyCard({ analysis }: { analysis: FunctionAnalysis }) {
   });
   rows.push({
     label: '周期',
-    value: analysis.period !== undefined ? `T = ${r3(analysis.period)}` : '无',
+    value: analysis.period !== undefined ? `T = $${r3(analysis.period)}$` : '无',
   });
 
   return (
     <div className="property-card">
       {rows.map((row) => (
-        <div className="property-row" key={row.label}>
+        <div
+          className={`property-row${row.focus !== undefined && onFocus ? ' focusable' : ''}`}
+          key={row.label}
+          onClick={
+            row.focus !== undefined && onFocus ? () => onFocus(row.focus as number) : undefined
+          }
+          title={row.focus !== undefined && onFocus ? '点击在图上标记此极值' : undefined}
+        >
           <span className="property-label">{row.label}</span>
-          <span className="property-value">{row.value}</span>
+          <span className="property-value">
+            <ValueWithMath text={row.value} />
+          </span>
         </div>
       ))}
       <details className="property-summary">

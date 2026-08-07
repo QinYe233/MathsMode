@@ -11,17 +11,27 @@ interface Props {
   vectors: VectorDef[];
   onClear: () => void;
   onAddVector: (input: string) => string | null;
+  highlightedExpr?: string | null;
 }
 
-export function GraphPanel({ analyses, vectors, onClear, onAddVector }: Props) {
+export function GraphPanel({ analyses, vectors, onClear, onAddVector, highlightedExpr }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [resetKey, setResetKey] = useState(0);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [vecInput, setVecInput] = useState('');
   const [vecError, setVecError] = useState<string | null>(null);
+  const [focused, setFocused] = useState<{ expr: string; x: number } | null>(null);
 
   const total = analyses.length + vectors.length;
+
+  // hover 图例时给对应曲线加高亮 class（function-plot 结构：svg > g.function）
+  const highlightCurve = (idx: number, on: boolean) => {
+    const svg = containerRef.current?.querySelector('svg');
+    if (!svg) return;
+    const fns = svg.querySelectorAll('g.function');
+    fns[idx]?.classList.toggle('curve-highlight', on);
+  };
 
   useEffect(() => {
     const el = containerRef.current;
@@ -34,7 +44,10 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector }: Props) {
   }, [analyses.length, vectors.length]);
 
   useEffect(() => {
-    if (total === 0) setHidden({});
+    if (total === 0) {
+      setHidden({});
+      setFocused(null);
+    }
   }, [total]);
 
   useEffect(() => {
@@ -88,6 +101,18 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector }: Props) {
             });
             return anns;
           }),
+          ...(focused
+            ? visible
+                .filter((a) => a.expression === focused.expr)
+                .flatMap((a) => {
+                  const ext = a.extrema.find((e) => Math.abs(e.x - focused.x) < 1e-6);
+                  const y = ext ? ext.y : 0;
+                  if (focused.x > viewBox.x[0] && focused.x < viewBox.x[1] && y > viewBox.y[0] && y < viewBox.y[1]) {
+                    return [{ x: focused.x, y, text: 'focus' }];
+                  }
+                  return [];
+                })
+            : []),
           ...visibleVectors.flatMap((v) => {
             const tx = v.x + 0.25;
             const ty = v.y + 0.25;
@@ -101,7 +126,7 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector }: Props) {
     } catch {
       /* 画图失败不崩溃 */
     }
-  }, [analyses, vectors, hidden, resetKey, size, total]);
+  }, [analyses, vectors, hidden, resetKey, size, total, focused]);
 
   const addVector = () => {
     const text = vecInput.trim();
@@ -154,10 +179,13 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector }: Props) {
         {analyses.map((a, i) => (
           <button
             key={a.expression + '-' + i}
-            className={`legend-btn ${hidden[a.expression] ? 'off' : ''}`}
+            className={`legend-btn ${hidden[a.expression] ? 'off' : ''}${highlightedExpr === a.expression ? ' lit' : ''}`}
             style={{ borderColor: COLORS[i % COLORS.length], color: COLORS[i % COLORS.length] }}
             onClick={() => setHidden((h) => ({ ...h, [a.expression]: !h[a.expression] }))}
+            onMouseEnter={() => highlightCurve(i, true)}
+            onMouseLeave={() => highlightCurve(i, false)}
           >
+            <span className="legend-dot" style={{ background: COLORS[i % COLORS.length] }} />
             {a.expression}
           </button>
         ))}
@@ -171,6 +199,10 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector }: Props) {
             }}
             onClick={() => setHidden((h) => ({ ...h, [`v:${v.id}`]: !h[`v:${v.id}`] }))}
           >
+            <span
+              className="legend-dot"
+              style={{ background: COLORS[(analyses.length + i) % COLORS.length] }}
+            />
             {v.name ? `${v.name}=(${v.x},${v.y})` : `(${v.x},${v.y})`}
           </button>
         ))}
@@ -182,10 +214,23 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector }: Props) {
         </button>
       </div>
       {vectorInputRow}
-      <div className="graph-plot" ref={containerRef} />
+      <div
+        className="graph-plot"
+        ref={containerRef}
+        onDoubleClick={() => setResetKey((k) => k + 1)}
+        title="滚轮缩放 · 双击重置视野"
+      />
       <div className="property-list">
         {analyses.map((a, i) => (
-          <PropertyCard key={a.expression + '-' + i} analysis={a} />
+          <PropertyCard
+            key={a.expression + '-' + i}
+            analysis={a}
+            onFocus={(x) =>
+              setFocused((f) =>
+                f && f.expr === a.expression && f.x === x ? null : { expr: a.expression, x },
+              )
+            }
+          />
         ))}
       </div>
     </div>

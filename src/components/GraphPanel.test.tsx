@@ -122,4 +122,45 @@ describe('GraphPanel', () => {
     );
     expect(screen.getByRole('button', { name: 'x^2 - 2x - 3' }).className).not.toContain('off');
   });
+
+  it('图例按钮带颜色圆点', () => {
+    const a = analyzeFunction({ id: 'f', expr: 'x^2 - 2x - 3' });
+    render(<GraphPanel analyses={[a]} vectors={[]} onClear={() => {}} onAddVector={() => null} />);
+    expect(screen.getByText('x^2 - 2x - 3').querySelector('.legend-dot')).toBeInTheDocument();
+  });
+
+  it('hover 图例给对应曲线加高亮 class', async () => {
+    const a = analyzeFunction({ id: 'f', expr: 'x^2 - 2x - 3' });
+    const user = userEvent.setup();
+    render(<GraphPanel analyses={[a]} vectors={[]} onClear={() => {}} onAddVector={() => null} />);
+    // function-plot 被 mock，往 .graph-plot 容器塞一个模拟 svg 结构
+    const plot = document.querySelector('.graph-plot')!;
+    const svg = document.createElement('div');
+    svg.innerHTML = '<svg><g class="function"><path class="line" /></g></svg>';
+    plot.appendChild(svg);
+    const btn = screen.getByText('x^2 - 2x - 3');
+    await user.hover(btn);
+    expect(svg.querySelector('g.function')?.classList.contains('curve-highlight')).toBe(true);
+    await user.unhover(btn);
+    expect(svg.querySelector('g.function')?.classList.contains('curve-highlight')).toBe(false);
+    svg.remove();
+  });
+
+  it('双击画布触发重绘（重置视野）', async () => {
+    const a = analyzeFunction({ id: 'f', expr: 'x^2 - 2x - 3' });
+    const user = userEvent.setup();
+    render(<GraphPanel analyses={[a]} vectors={[]} onClear={() => {}} onAddVector={() => null} />);
+    const before = mockedPlot.mock.calls.length;
+    await user.dblClick(document.querySelector('.graph-plot')!);
+    expect(mockedPlot.mock.calls.length).toBeGreaterThan(before);
+  });
+
+  it('聚焦极值后在图上生成 focus 标注', async () => {
+    const a = analyzeFunction({ id: 'f', expr: 'x^2 - 2x - 3' });
+    const user = userEvent.setup();
+    render(<GraphPanel analyses={[a]} vectors={[]} onClear={() => {}} onAddVector={() => null} />);
+    await user.click(screen.getByText(/极小值/));
+    const call = mockedPlot.mock.calls[mockedPlot.mock.calls.length - 1][0];
+    expect(call.annotations!.some((ann: any) => ann.text === 'focus')).toBe(true);
+  });
 });

@@ -141,4 +141,27 @@ describe('ChatPanel', () => {
     );
     expect(document.querySelector('.bubble-actions')).not.toBeInTheDocument();
   });
+
+  it('assistant 消息的函数 chip 可点击并触发 onHighlight', async () => {
+    const onHighlight = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <ChatPanel
+        messages={[
+          {
+            id: 'a1',
+            role: 'assistant',
+            content: '见函数',
+            functions: [{ id: 'f1', expr: 'x^2 - 2x - 3' }],
+          },
+        ]}
+        loading={false}
+        onSend={() => {}}
+        onOpenSettings={() => {}}
+        onHighlight={onHighlight}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: /x\^2 - 2x - 3/ }));
+    expect(onHighlight).toHaveBeenCalledWith('x^2 - 2x - 3');
+  });
 });
