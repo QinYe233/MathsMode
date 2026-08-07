@@ -6,13 +6,16 @@
 
 - 函数图像绘制与多函数对比（基于 function-plot）
 - 数学表达式解析与计算（mathjs）
-- 公式渲染（KaTeX）
-- 富文本聊天：AI 回复支持 Markdown（标题/加粗/列表/表格/代码块）+ LaTeX 公式（`$...$`、`$$...$$`、`\(...\)`、`\[...\]`），自动剥离绘图元数据块
+- 公式渲染（KaTeX）：消息内公式可点击复制 LaTeX 源码
+- 富文本聊天：AI 回复支持 Markdown（标题/加粗/列表/表格/代码块）+ LaTeX 公式，代码块带语法高亮、语言标签与一键复制
+- 深色模式（跟随系统 / 手动切换）
+- Maple Mono 字体（OFL 许可，子集化后内置）
 - 矢量输入与可视化
+- 绘图面板：图例颜色圆点、hover 高亮曲线、双击重置视野、属性卡片数学排版、点击极值在图上标点、消息内函数 chip 一键高亮曲线
 
 ## 富文本渲染管线
 
-AI 回复经 `react-markdown` + `remark-gfm` + `remark-math` + `rehype-katex` 渲染，`rehype-sanitize` 防 XSS（schema 已扩展以保留 KaTeX MathML）；渲染失败的公式自动回退为纯文本；流式输出经 `useDeferredValue` 优化。详见 `src/components/MessageBubble.tsx`。
+AI 回复经 `react-markdown` + `remark-gfm` + `remark-math` + `remark-breaks` 解析，`rehype-highlight` 代码块语法高亮，`rehype-sanitize` 防 XSS（自定义 schema 放行 `language-*`/`math-inline`/`hljs-*` 类）；公式在 `components.code` 分支用 KaTeX 手动渲染（react-markdown v10 的 math 节点即 `code.language-math`），支持点击复制 LaTeX 源码，渲染失败自动回退纯文本；流式输出经 `useDeferredValue` 优化。详见 `src/components/MessageBubble.tsx`。
 
 ## 技术栈
 
