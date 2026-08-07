@@ -46,9 +46,11 @@ body {
 .app {
   display: grid;
   grid-template-columns: 44px 1fr;
+  grid-template-rows: minmax(0, 100%); /* 行锁定视口高：防止内容把行撑高导致外层滚动/裁切 */
   height: 100vh;
   overflow: hidden; /* 防子元素撑破导致窗口级滚动条 */
 }
+.app > * { min-height: 0; min-width: 0; } /* 允许 grid 子项收缩，内部各自滚动 */
 
 /* 聊天区 */
 .chat-panel { display: flex; flex-direction: column; min-width: 0; background: var(--panel); }
