@@ -114,10 +114,9 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector, highlighte
                 })
             : []),
           ...visibleVectors.flatMap((v) => {
-            // 标签偏移按视口比例（视野宽 4%），避免大向量时标签压住箭头
-            const off = (viewBox.x[1] - viewBox.x[0]) * 0.04;
-            const tx = v.x + off;
-            const ty = v.y + off;
+            // 标签精确落在数据点，不做任何偏移（保证数据准确）
+            const tx = v.x;
+            const ty = v.y;
             if (tx > viewBox.x[0] && tx < viewBox.x[1] && ty > viewBox.y[0] && ty < viewBox.y[1]) {
               return [{ x: tx, y: ty, text: v.name ? `${v.name}(${v.x},${v.y})` : `(${v.x},${v.y})` }];
             }
