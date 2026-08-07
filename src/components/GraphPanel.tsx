@@ -22,37 +22,8 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector, highlighte
   const [vecInput, setVecInput] = useState('');
   const [vecError, setVecError] = useState<string | null>(null);
   const [focused, setFocused] = useState<{ expr: string; x: number } | null>(null);
-  const viewBoxRef = useRef<{ x: [number, number]; y: [number, number] } | null>(null);
-  const sizeRef = useRef<{ w: number; h: number } | null>(null);
 
   const total = analyses.length + vectors.length;
-
-  // 十字坐标轴：把 x/y 轴移到原点处交叉（含缩放/拖拽后的重定位）
-  const repositionAxes = (svg: Element, vb: { x: [number, number]; y: [number, number] }, w: number, h: number) => {
-    const sx = (v: number) => ((v - vb.x[0]) / (vb.x[1] - vb.x[0])) * w;
-    const sy = (v: number) => h - ((v - vb.y[0]) / (vb.y[1] - vb.y[0])) * h;
-    // 缩放/拖拽后 origin 位置 = 初始原点位置经过 zoom transform（k*x+t）
-    const zr = svg.querySelector('.zoom-and-drag') as Element & { __zoom?: { k: number; x: number; y: number } } | null;
-    const t = zr?.__zoom ?? { k: 1, x: 0, y: 0 };
-    const ox = sx(0) * t.k + t.x;
-    const oy = sy(0) * t.k + t.y;
-    svg.querySelector('g.x.axis')?.setAttribute('transform', `translate(0,${oy})`);
-    svg.querySelector('g.y.axis')?.setAttribute('transform', `translate(${ox},0)`);
-    // 轴标签跟随轴：x 在横轴中段下方、y 在纵轴中段左侧
-    const xl = svg.querySelector('text.x.axis-label');
-    if (xl) {
-      xl.setAttribute('x', String(w / 2));
-      xl.setAttribute('y', String(oy + 18));
-      xl.setAttribute('text-anchor', 'middle');
-    }
-    const yl = svg.querySelector('text.y.axis-label');
-    if (yl) {
-      yl.setAttribute('x', String(ox - 12));
-      yl.setAttribute('y', String(h / 2));
-      yl.setAttribute('text-anchor', 'end');
-      yl.setAttribute('transform', `rotate(-90,${ox - 12},${h / 2})`);
-    }
-  };
 
   // hover 图例时给对应曲线加高亮 class（function-plot 结构：svg > g.function）
   const highlightCurve = (idx: number, on: boolean) => {
@@ -145,38 +116,10 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector, highlighte
             : []),
         ],
       });
-      viewBoxRef.current = viewBox;
-      sizeRef.current = { w: width, h: height };
-      const svg = el.querySelector('svg');
-      if (svg) repositionAxes(svg, viewBox, width, height);
     } catch {
       /* 画图失败不崩溃 */
     }
   }, [analyses, vectors, hidden, resetKey, size, total, focused]);
-
-  // 缩放/拖拽/双击后 function-plot 会重绘轴回边缘，跟随重定位回原点
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    // d3 zoom 的 handler 会 stopImmediatePropagation 阻断普通事件监听；
-    // 用 MutationObserver 观察轴 transform 变化（缩放/拖拽/双击重绘都会触发），
-    // debounce 后在稳定时把轴重定位回原点交叉处。
-    let timer: number | undefined;
-    const reposition = () => {
-      const svg = el.querySelector('svg');
-      const vb = viewBoxRef.current;
-      const sz = sizeRef.current;
-      if (!svg || !vb || !sz) return;
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => repositionAxes(svg, vb, sz.w, sz.h), 120);
-    };
-    const mo = new MutationObserver(reposition);
-    mo.observe(el, { childList: true, subtree: true, attributes: true, attributeFilter: ['transform'] });
-    return () => {
-      mo.disconnect();
-      window.clearTimeout(timer);
-    };
-  }, []);
 
   const addVector = () => {
     const text = vecInput.trim();
