@@ -85,6 +85,9 @@ export function PropertyCard({
 
   return (
     <div className="property-card">
+      <div className="property-card-head">
+        <span className="property-card-fn">f(x) = {analysis.expression}</span>
+      </div>
       {rows.map((row) => (
         <div
           className={`property-row${row.focus !== undefined && onFocus ? ' focusable' : ''}`}
@@ -115,7 +118,8 @@ function fmt(iv: { lo: number; hi: number; loOpen: boolean; hiOpen: boolean }): 
 }
 
 function r3(x: number): string {
-  return String(Math.round(x * 1000) / 1000);
+  // 数学语境用 U+2212 减号（如 y=−4），与 ∞ 排版一致
+  return String(Math.round(x * 1000) / 1000).replace('-', '−');
 }
 
 function truncate(items: string[], total: number, unit: string): string[] {
