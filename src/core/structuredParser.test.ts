@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractFunctions } from './structuredParser';
+import { extractFunctions, stripMathBlocks } from './structuredParser';
 
 describe('extractFunctions', () => {
   it('解析完整 MATH_FUNCTIONS 块', () => {
@@ -26,9 +26,46 @@ describe('extractFunctions', () => {
     expect(extractFunctions('这是一道概率题，不涉及函数。')).toEqual([]);
   });
 
+  it('流式中间态（块未闭合）不剥离正文', () => {
+    expect(stripMathBlocks('解答：\n<!-- MATH_FUNCTIONS -->\n{"functions": []}')).toBe('解答：');
+  });
+
+  it('完整块剥离且保留前后正文', () => {
+    expect(
+      stripMathBlocks('前文\n<!-- MATH_FUNCTIONS -->\n{"functions": []}\n<!-- /MATH_FUNCTIONS -->\n后文'),
+    ).toBe('前文\n后文');
+  });
+
+  it('无块时原样返回', () => {
+    expect(stripMathBlocks('普通文本')).toBe('普通文本');
+  });
+
   it('Unicode 符号归一化（× ÷ − π）', () => {
     const reply = `<!-- MATH_FUNCTIONS -->\n{"functions": [{"id": "f", "expr": "x^2 − 3×x ÷ 2 + π"}]}\n<!-- /MATH_FUNCTIONS -->`;
     const defs = extractFunctions(reply);
     expect(defs[0].expr).toBe('x^2-3*x/2+pi');
+  });
+
+  it('上标/根号/绝对值/全角归一化（块内 expr）', () => {
+    const reply = `<!-- MATH_FUNCTIONS -->\n{"functions": [{"id": "f", "expr": "x² − ３×√(x＋1) ＋ |x|"}]}\n<!-- /MATH_FUNCTIONS -->`;
+    const defs = extractFunctions(reply);
+    expect(defs[0].expr).toBe('x^2-3*sqrt(x+1)+abs(x)');
+  });
+
+  it('√x 无括号时归一化为 sqrt(x)', () => {
+    const reply = `<!-- MATH_FUNCTIONS -->\n{"functions": [{"id": "f", "expr": "√x + √(x+1)"}]}\n<!-- /MATH_FUNCTIONS -->`;
+    const defs = extractFunctions(reply);
+    expect(defs[0].expr).toBe('sqrt(x)+sqrt(x+1)');
+  });
+
+  it('负上标 ⁻¹ 归一化为 ^-1', () => {
+    const reply = `<!-- MATH_FUNCTIONS -->\n{"functions": [{"id": "f", "expr": "x⁻¹ + x²"}]}\n<!-- /MATH_FUNCTIONS -->`;
+    const defs = extractFunctions(reply);
+    expect(defs[0].expr).toBe('x^-1+x^2');
+  });
+
+  it('fallback 提取 f(x)=x²-2x-3 并归一化上标', () => {
+    const defs = extractFunctions('因为 f(x)=x²-2x-3，所以顶点在 x=1');
+    expect(defs[0].expr).toBe('x^2-2x-3');
   });
 });

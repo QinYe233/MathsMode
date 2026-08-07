@@ -14,10 +14,10 @@ export function HistorySidebar({ sessions, activeId, collapsed, onToggle, onSele
   if (collapsed) {
     return (
       <div className="sidebar sidebar-collapsed">
-        <button className="icon-btn" onClick={onToggle} title="展开">
+        <button className="icon-btn" onClick={onToggle} aria-label="展开侧边栏" title="展开">
           »
         </button>
-        <button className="icon-btn" onClick={onNew} title="新会话">
+        <button className="icon-btn" onClick={onNew} aria-label="新会话" title="新会话">
           +
         </button>
       </div>
@@ -28,10 +28,10 @@ export function HistorySidebar({ sessions, activeId, collapsed, onToggle, onSele
       <div className="sidebar-head">
         <span>会话</span>
         <div>
-          <button className="icon-btn" onClick={onNew} title="新会话">
+          <button className="icon-btn" onClick={onNew} aria-label="新会话" title="新会话">
             +
           </button>
-          <button className="icon-btn" onClick={onToggle} title="收起">
+          <button className="icon-btn" onClick={onToggle} aria-label="收起侧边栏" title="收起">
             «
           </button>
         </div>
@@ -46,6 +46,7 @@ export function HistorySidebar({ sessions, activeId, collapsed, onToggle, onSele
             <span className="session-title">{s.title}</span>
             <button
               className="session-del"
+              aria-label={`删除会话 ${s.title}`}
               title="删除"
               onClick={(e) => {
                 e.stopPropagation();

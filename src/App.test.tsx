@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, beforeAll } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
@@ -8,9 +8,45 @@ vi.mock('./core/aiClient', () => ({
   ApiError: class ApiError extends Error {},
 }));
 vi.mock('function-plot', () => ({ default: vi.fn(), registerGraphType: vi.fn() }));
+vi.mock('./core/analysisEngine', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('./core/analysisEngine')>();
+  return { ...mod, analyzeFunction: vi.fn(mod.analyzeFunction) };
+});
 
 import { streamChat } from './core/aiClient';
+import { analyzeFunction } from './core/analysisEngine';
 const mockedStream = vi.mocked(streamChat);
+const mockedAnalyze = vi.mocked(analyzeFunction);
+
+function analysis(expression: string, summary: string) {
+  return {
+    expression,
+    domain: [],
+    parity: 'neither' as const,
+    monotonic: [],
+    extrema: [],
+    asymptotes: [],
+    zeroPoints: [],
+    summary,
+  };
+}
+
+beforeAll(() => {
+  // jsdom 无 matchMedia：App 的"跟随系统"主题解析需要
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((q: string) => ({
+      matches: false,
+      media: q,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+});
 
 beforeEach(() => {
   localStorage.clear();
@@ -19,6 +55,7 @@ beforeEach(() => {
     JSON.stringify({ baseUrl: 'https://x/v1', apiKey: 'sk-test', model: 'm', stream: false }),
   );
   mockedStream.mockReset();
+  mockedAnalyze.mockClear(); // 保留包装的真实实现，仅清调用记录
 });
 
 describe('App', () => {
@@ -62,7 +99,7 @@ describe('App', () => {
 
   it('抽屉关闭时仍可打开设置', async () => {
     render(<App />);
-    await userEvent.click(screen.getByRole('button', { name: '⚙' }));
+    await userEvent.click(screen.getByRole('button', { name: /AI 设置/ }));
     expect(document.querySelector('.modal')).not.toBeNull();
   });
 
@@ -166,5 +203,28 @@ describe('App', () => {
     await userEvent.type(screen.getByPlaceholderText(/输入数学问题/), '再来一次');
     await userEvent.click(screen.getByRole('button', { name: /发送/ }));
     expect(await screen.findByText('奇偶性')).toBeInTheDocument();
+  });
+
+  it('同表达式重新分析后属性面板刷新（新分析对象生效）', async () => {
+    mockedAnalyze.mockReturnValueOnce(analysis('x^2', '第一次总结')).mockReturnValueOnce(
+      analysis('x^2', '第二次总结'),
+    );
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: /函数图像/ }));
+    const input = screen.getByPlaceholderText(/手动输入函数/);
+    await userEvent.type(input, 'x^2');
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByText('第一次总结')).toBeInTheDocument();
+    await userEvent.type(input, 'x^2');
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByText('第二次总结')).toBeInTheDocument();
+  });
+
+  it('theme=dark 时在 html 上应用 data-theme=dark', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: /AI 设置/ }));
+    await userEvent.click(screen.getByRole('radio', { name: /深色/ }));
+    await userEvent.click(screen.getByRole('button', { name: '保存' }));
+    expect(document.documentElement.dataset.theme).toBe('dark');
   });
 });

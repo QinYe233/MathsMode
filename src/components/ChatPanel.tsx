@@ -51,7 +51,7 @@ export function ChatPanel({
       {onOpenSettings && (
         <div className="chat-head">
           <span>数学学习助手</span>
-          <button className="icon-btn" onClick={onOpenSettings} title="AI 设置">
+          <button className="icon-btn" onClick={onOpenSettings} aria-label="AI 设置" title="AI 设置">
             ⚙
           </button>
         </div>
@@ -59,13 +59,17 @@ export function ChatPanel({
       <div className="chat-messages">
         {messages.length === 0 && (
           <div className="chat-empty">
-            输入数学问题开始提问，例如：
-            <br />
-            「求 f(x)=x²-2x-3 的单调区间和极值」
+            <div className="chat-empty-hint">输入数学问题开始提问，支持 Markdown 与公式：</div>
+            <MessageBubble
+              message={{
+                role: 'assistant',
+                content: '**示例**：求 $f(x)=x^2-2x-3$ 的单调区间和极值',
+              }}
+            />
           </div>
         )}
         {messages.map((m, i) => (
-          <MessageBubble key={i} message={m} />
+          <MessageBubble key={m.id ?? `${m.role}-${i}`} message={m} />
         ))}
         {loading && <div className="bubble ai bubble-thinking">思考中…</div>}
       </div>

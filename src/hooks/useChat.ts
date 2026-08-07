@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AISettings, ChatMessage, Session } from '../types';
-import { historyStore } from '../core/historyStore';
+import { historyStore, nextId } from '../core/historyStore';
 import { streamChat } from '../core/aiClient';
 import { extractFunctions } from '../core/structuredParser';
 import { analyzeFunction } from '../core/analysisEngine';
@@ -36,21 +36,25 @@ export function useChat() {
   );
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, options?: { appendUser?: boolean }) => {
       const settings = settingsRef.current;
       if (!settings || !settings.apiKey || loading) return;
-      const userMsg: ChatMessage = { role: 'user', content: text };
-      patchActive((s) => ({
-        ...s,
-        title: s.messages.length === 0 ? text.slice(0, 20) : s.title,
-        messages: [...s.messages, userMsg],
-      }));
+      const appendUser = options?.appendUser ?? true;
+      const userMsg: ChatMessage = { role: 'user', content: text, id: nextId() };
+      if (appendUser) {
+        patchActive((s) => ({
+          ...s,
+          title: s.messages.length === 0 ? text.slice(0, 20) : s.title,
+          messages: [...s.messages, userMsg],
+        }));
+      }
+      const context = appendUser ? [...messages, userMsg] : messages;
       setLoading(true);
       setError(null);
       let full = '';
       try {
         for await (const piece of streamChat(
-          [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
+          context.map((m) => ({ role: m.role, content: m.content })),
           settings,
         )) {
           full += piece;
@@ -60,7 +64,7 @@ export function useChat() {
             if (last?.role === 'assistant' && !last.error) {
               list[list.length - 1] = { ...last, content: full };
             } else {
-              list.push({ role: 'assistant', content: full });
+              list.push({ role: 'assistant', content: full, id: nextId() });
             }
             return { ...s, messages: list };
           });
@@ -85,7 +89,7 @@ export function useChat() {
           if (last?.role === 'assistant' && last.content === full && full) {
             list[list.length - 1] = { ...last, error: true };
           } else {
-            list.push({ role: 'assistant', content: `⚠️ ${msg}`, error: true });
+            list.push({ role: 'assistant', content: `⚠️ ${msg}`, error: true, id: nextId() });
           }
           return { ...s, messages: list };
         });
@@ -117,7 +121,7 @@ export function useChat() {
   const retry = useCallback(async () => {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     if (!lastUser || loading) return;
-    await send(lastUser.content);
+    await send(lastUser.content, { appendUser: false });
   }, [messages, loading, send]);
 
   const clearPlot = useCallback(() => {

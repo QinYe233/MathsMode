@@ -35,6 +35,19 @@ describe('ChatPanel', () => {
     expect(screen.getByText(/思考中/)).toBeInTheDocument();
   });
 
+  it('空状态展示富文本示例（加粗 + 公式）', () => {
+    render(<ChatPanel messages={[]} loading={false} onSend={() => {}} />);
+    expect(screen.getByText('示例', { selector: 'strong' })).toBeInTheDocument();
+    expect(document.querySelector('.katex')).not.toBeNull();
+  });
+
+  it('设置按钮有可访问名称', () => {
+    render(
+      <ChatPanel messages={[]} loading={false} onSend={() => {}} onOpenSettings={() => {}} />,
+    );
+    expect(screen.getByRole('button', { name: /AI 设置/ })).toBeInTheDocument();
+  });
+
   it('非法手动输入函数显示红色错误且不调用 onAddFunction', async () => {
     const onAddFunction = vi.fn();
     render(

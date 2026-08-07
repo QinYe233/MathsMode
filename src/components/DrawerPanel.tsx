@@ -42,7 +42,7 @@ export function DrawerPanel({ analyses, vectors, width, onResize, onClose, onRes
       />
       <div className="right-panel-head">
         <span>函数图像与特性</span>
-        <button className="icon-btn" onClick={onClose} title="收起">
+        <button className="icon-btn" onClick={onClose} aria-label="收起函数面板" title="收起">
           »
         </button>
       </div>

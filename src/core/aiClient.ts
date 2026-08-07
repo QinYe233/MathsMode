@@ -1,6 +1,8 @@
 import type { AISettings } from '../types';
 
-export const SYSTEM_PROMPT = `你是一位资深高中数学老师。请用中文解答学生的数学问题，步骤清晰，适当使用 LaTeX 公式（$...$ 行内，$$...$$ 独立成行）。
+export const SYSTEM_PROMPT = `你是一位资深高中数学老师。请用中文解答学生的数学问题，步骤清晰，适当使用 LaTeX 公式（$...$ 行内，$$...$$ 独立成行，独立公式务必让 $$ 单独占行）。
+
+界面支持 Markdown 富文本：可以使用 **加粗**、- 列表、| 表格 | 增强可读性；不要输出 HTML 标签。
 
 如果题目涉及函数（或你推导出需要画出函数图像辅助理解），在解答的最末尾附加如下 JSON 注释块（不含任何其他内容）：
 <!-- MATH_FUNCTIONS -->
@@ -27,11 +29,24 @@ function normalizeBase(base: string): string {
   return base.trim().replace(/\/+$/, '');
 }
 
+// 请求超时（毫秒），超时后中止 fetch 并提示用户
+const REQUEST_TIMEOUT_MS = 120_000;
+
+function timeoutMessage(): string {
+  return '请求超时，请重试';
+}
+
 export async function* streamChat(
   messages: { role: 'user' | 'assistant'; content: string }[],
   settings: AISettings,
 ): AsyncGenerator<string> {
   const url = `${normalizeBase(settings.baseUrl)}/chat/completions`;
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, REQUEST_TIMEOUT_MS);
   let res: Response;
   try {
     res = await fetch(url, {
@@ -46,12 +61,15 @@ export async function* streamChat(
         stream: settings.stream,
         temperature: 0.3,
       }),
+      signal: controller.signal,
     });
   } catch {
-    throw new ApiError('网络错误，请检查网络连接或 Base URL 设置');
+    clearTimeout(timer);
+    throw new ApiError(timedOut ? timeoutMessage() : '网络错误，请检查网络连接或 Base URL 设置');
   }
 
   if (!res.ok) {
+    clearTimeout(timer);
     let detail = '';
     try {
       const data = await res.json();
@@ -63,13 +81,17 @@ export async function* streamChat(
   }
 
   if (!settings.stream) {
+    clearTimeout(timer);
     const data = await res.json();
     yield data?.choices?.[0]?.message?.content ?? '';
     return;
   }
 
   const reader = res.body?.getReader();
-  if (!reader) throw new ApiError('响应流不可用');
+  if (!reader) {
+    clearTimeout(timer);
+    throw new ApiError('响应流不可用');
+  }
   const decoder = new TextDecoder();
   let buffer = '';
   try {
@@ -94,6 +116,8 @@ export async function* streamChat(
       }
     }
   } catch {
-    throw new ApiError('网络中断，请重试');
+    throw new ApiError(timedOut ? timeoutMessage() : '网络中断，请重试');
+  } finally {
+    clearTimeout(timer);
   }
 }

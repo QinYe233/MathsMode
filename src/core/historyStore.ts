@@ -2,6 +2,12 @@ import type { Session } from '../types';
 
 const KEY = 'mathmate.sessions.v1';
 
+export function nextId(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `id${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export const historyStore = {
   load(): Session[] {
     try {
@@ -22,9 +28,7 @@ export const historyStore = {
   },
   create(): Session {
     return {
-      id: typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : `s${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      id: nextId(),
       title: '新会话',
       createdAt: Date.now(),
       messages: [],
