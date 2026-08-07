@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ChatMessage } from '../types';
-import { MessageBubble } from './MessageBubble';
+import { MessageBubble, copyText } from './MessageBubble';
 import { validateExpression } from '../core/mathUtil';
 
 interface Props {
@@ -69,7 +69,16 @@ export function ChatPanel({
           </div>
         )}
         {messages.map((m, i) => (
-          <MessageBubble key={m.id ?? `${m.role}-${i}`} message={m} />
+          <MessageBubble
+            key={m.id ?? `${m.role}-${i}`}
+            message={m}
+            streaming={loading && i === messages.length - 1 && m.role === 'assistant'}
+            onCopy={(t) => copyText(t)}
+            retryable={
+              onRetry != null && i === messages.length - 1 && m.role === 'assistant' && !m.error
+            }
+            onRetry={onRetry}
+          />
         ))}
         {loading && <div className="bubble ai bubble-thinking">思考中…</div>}
       </div>

@@ -4,57 +4,77 @@ import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import remarkBreaks from 'remark-breaks';
-import rehypeKatex from 'rehype-katex';
+import rehypeHighlight from 'rehype-highlight';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import type { Element, Root, Text } from 'hast';
-import type { Plugin } from 'unified';
+import type { Element, Text } from 'hast';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import 'highlight.js/styles/github-dark.css';
 import type { ChatMessage } from '../types';
 import { stripMathBlocks } from '../core/structuredParser';
 
-/* ---------- KaTeX / Markdown 渲染管线 ---------- */
+/* ---------- 工具 ---------- */
 
-// KaTeX 的 MathML 输出标签（默认 sanitize schema 不含它们，会剥掉公式并泄露原文）
-const KATEX_TAGS = [
-  'math', 'semantics', 'annotation', 'mrow', 'mspace', 'mstyle', 'mtable', 'mtd', 'mtr',
-  'msqrt', 'mn', 'mo', 'mi', 'mtext', 'msup', 'msub', 'msubsup', 'mfrac', 'munder', 'mover',
-  'munderover', 'mroot', 'mpadded', 'mphantom', 'menclose', 'merror', 'mfenced', 'mlabeledtr',
-  'mlongdiv', 'mprescripts', 'none', 'mstack', 'mscarries', 'mscarry', 'msgroup', 'msline', 'msrow',
-];
-
-// 默认 schema + KaTeX 所需标签/属性（className、style、xmlns、encoding）
+// 默认 schema 会把 code 的 className 裁成只留 language-*，并把 hljs 高亮的
+// span 类（hljs-keyword 等）与 math 标记（math-inline/math-display）全部剥掉；
+// 显式放行这几类，公式分支判断与语法高亮才能正常工作。
 const sanitizeSchema = {
   ...defaultSchema,
-  tagNames: [...new Set([...(defaultSchema.tagNames ?? []), ...KATEX_TAGS])],
   attributes: {
     ...defaultSchema.attributes,
-    '*': [...new Set([...(defaultSchema.attributes?.['*'] ?? []), 'className', 'style'])],
-    math: [...new Set([...(defaultSchema.attributes?.math ?? []), 'xmlns'])],
-    annotation: [...new Set([...(defaultSchema.attributes?.annotation ?? []), 'encoding'])],
+    code: [['className', /^language-/, 'math-inline', 'math-display', 'hljs']],
+    span: [['className', /^hljs-/]],
   },
 };
 
 const isElement = (node: unknown): node is Element =>
   typeof node === 'object' && node !== null && (node as { type?: unknown }).type === 'element';
 
-// KaTeX 渲染失败的公式回退为纯文本，避免红字乱码（如中文语境误匹配的 $...$）
-const rehypeKatexFallback: Plugin<[], Root> = () => (tree) => {
-  const visit = (node: unknown): void => {
-    if (!isElement(node)) return;
-    const cls = node.properties?.className;
-    if (Array.isArray(cls) && cls.includes('katex-error')) {
-      const text = node.children
-        .filter((c): c is Text => c.type === 'text')
-        .map((c) => c.value)
-        .join('');
-      node.children = text ? [{ type: 'text', value: text }] : [];
-      node.properties = { ...node.properties, className: cls.filter((c) => c !== 'katex-error') };
-    }
-    node.children.forEach((child) => visit(child));
+async function copyText(t: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(t);
+  } catch {
+    /* 剪贴板不可用（权限/jsdom）时静默 */
+  }
+}
+
+// 从 hast code 节点递归收集文本（含 hljs 注入的 span）
+function codeText(node: Element | undefined): string {
+  if (!node) return '';
+  const walk = (n: unknown): string => {
+    if (!isElement(n)) return '';
+    return n.children
+      .map((c) => (c.type === 'text' ? (c as Text).value : walk(c)))
+      .join('');
   };
-  tree.children.forEach((child) => visit(child));
-};
+  return walk(node);
+}
+
+/* ---------- 公式渲染（components.code 的 language-math 分支） ---------- */
+
+// react-markdown v10 不调用 components.math：remark-math 节点经 mdast-util-math
+// 变成 <code class="language-math math-inline|math-display">，只能在此分支手动渲染。
+function MathRender({ className, tex }: { className: string; tex: string }) {
+  const display = className.includes('math-display');
+  const html = katex.renderToString(tex, { displayMode: display, throwOnError: false, strict: false });
+  const ok = !html.includes('katex-error');
+  return (
+    <span
+      className={`katex-copy${display ? ' katex-copy-display' : ''}`}
+      title="点击复制公式"
+      onClick={() => copyText(tex.trim())}
+    >
+      {ok ? (
+        <span dangerouslySetInnerHTML={{ __html: html }} />
+      ) : (
+        // 渲染失败保留原文，不显示红字
+        <span className="katex-fallback">{tex}</span>
+      )}
+    </span>
+  );
+}
+
+/* ---------- Markdown 组件 ---------- */
 
 const markdownComponents: Components = {
   // 链接新窗口打开，避免打断阅读
@@ -63,6 +83,40 @@ const markdownComponents: Components = {
       {children}
     </a>
   ),
+  code: ({ className, children }) => {
+    const isMath =
+      typeof className === 'string' &&
+      (className.includes('language-math math-inline') ||
+        className.includes('language-math math-display'));
+    if (isMath) return <MathRender className={className} tex={String(children)} />;
+    return <code className={className}>{children}</code>;
+  },
+  // 代码块：语言标签 + 复制按钮（math 的 pre 保持原样，由 code 组件渲染公式）
+  pre: ({ node, children }) => {
+    const codeEl = (node?.children ?? []).find(isElement) as Element | undefined;
+    const cls = codeEl?.properties?.className;
+    const isMath = Array.isArray(cls) && cls.includes('language-math');
+    if (isMath) return <pre>{children}</pre>;
+    const lang = Array.isArray(cls)
+      ? cls.find((c): c is string => typeof c === 'string' && c.startsWith('language-'))?.slice(9)
+      : undefined;
+    return (
+      <div className="code-block">
+        <div className="code-head">
+          <span className="code-lang">{lang || 'text'}</span>
+          <button
+            className="code-copy"
+            onClick={() => copyText(codeText(codeEl).trim())}
+            aria-label="复制代码"
+            title="复制代码"
+          >
+            ⧉
+          </button>
+        </div>
+        <pre>{children}</pre>
+      </div>
+    );
+  },
 };
 
 /* ---------- 用户消息：纯文本 + KaTeX（保持原样，不处理 Markdown） ---------- */
@@ -102,13 +156,50 @@ function renderUserContent(content: string): ReactNode[] {
 
 /* ---------- 气泡 ---------- */
 
-export function MessageBubble({ message }: { message: ChatMessage }) {
+export function MessageBubble({
+  message,
+  streaming,
+  onCopy,
+  onRetry,
+  retryable,
+}: {
+  message: ChatMessage;
+  streaming?: boolean;
+  onCopy?: (text: string) => void;
+  onRetry?: () => void;
+  retryable?: boolean;
+}) {
   return (
-    <div className={`bubble ${message.role}`}>
+    <div className={`bubble ${message.role === 'assistant' ? 'ai' : 'user'}`}>
       {message.role === 'assistant' ? (
         <MarkdownBody content={message.content} />
       ) : (
         renderUserContent(message.content)
+      )}
+      {streaming && <span className="streaming-cursor" aria-hidden="true" />}
+      {message.role === 'assistant' && (onCopy || retryable) && (
+        <div className="bubble-actions">
+          {onCopy && (
+            <button
+              className="bubble-action"
+              onClick={() => onCopy(message.content)}
+              aria-label="复制消息"
+              title="复制消息"
+            >
+              ⧉
+            </button>
+          )}
+          {retryable && onRetry && (
+            <button
+              className="bubble-action"
+              onClick={onRetry}
+              aria-label="重试"
+              title="重试"
+            >
+              ↻
+            </button>
+          )}
+        </div>
       )}
       {message.error && <div className="bubble-error">请求失败，请检查 API 配置后重试</div>}
     </div>
@@ -124,8 +215,7 @@ function MarkdownBody({ content }: { content: string }) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
         rehypePlugins={[
-          [rehypeKatex, { throwOnError: false, strict: false }],
-          rehypeKatexFallback,
+          [rehypeHighlight, { detect: false }],
           [rehypeSanitize, sanitizeSchema],
         ]}
         components={markdownComponents}
@@ -135,3 +225,6 @@ function MarkdownBody({ content }: { content: string }) {
     </div>
   );
 }
+
+// 供 ChatPanel 复用的剪贴板工具
+export { copyText };

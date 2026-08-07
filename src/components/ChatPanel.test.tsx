@@ -69,4 +69,76 @@ describe('ChatPanel', () => {
     await userEvent.keyboard('{Enter}');
     expect(onAddFunction).toHaveBeenCalledWith('x^2');
   });
+
+  it('loading 且最后一条为 assistant 时显示流式光标', () => {
+    render(
+      <ChatPanel
+        messages={[{ id: 'a1', role: 'assistant', content: '逐步求解…' }]}
+        loading
+        onSend={() => {}}
+      />,
+    );
+    expect(document.querySelector('.streaming-cursor')).toBeInTheDocument();
+  });
+
+  it('loading 但最后一条是 user 时不显示流式光标', () => {
+    render(
+      <ChatPanel
+        messages={[{ id: 'u1', role: 'user', content: '求导' }]}
+        loading
+        onSend={() => {}}
+      />,
+    );
+    expect(document.querySelector('.streaming-cursor')).not.toBeInTheDocument();
+  });
+
+  it('hover assistant 消息出现复制按钮并复制全文', async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
+    render(
+      <ChatPanel
+        messages={[{ id: 'a1', role: 'assistant', content: '**结论**' }]}
+        loading={false}
+        onSend={() => {}}
+        onOpenSettings={() => {}}
+        onRetry={() => {}}
+      />,
+    );
+    await user.hover(screen.getByText('结论'));
+    await user.click(screen.getByRole('button', { name: '复制消息' }));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('**结论**');
+  });
+
+  it('最后一条 assistant 消息显示重试按钮且点击触发 onRetry', async () => {
+    const onRetry = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <ChatPanel
+        messages={[{ id: 'a1', role: 'assistant', content: 'x' }]}
+        loading={false}
+        onSend={() => {}}
+        onOpenSettings={() => {}}
+        onRetry={onRetry}
+      />,
+    );
+    await user.hover(screen.getByText('x'));
+    await user.click(screen.getByRole('button', { name: '重试' }));
+    expect(onRetry).toHaveBeenCalled();
+  });
+
+  it('用户消息不显示操作按钮', () => {
+    render(
+      <ChatPanel
+        messages={[{ id: 'u1', role: 'user', content: 'hi' }]}
+        loading={false}
+        onSend={() => {}}
+        onOpenSettings={() => {}}
+        onRetry={() => {}}
+      />,
+    );
+    expect(document.querySelector('.bubble-actions')).not.toBeInTheDocument();
+  });
 });

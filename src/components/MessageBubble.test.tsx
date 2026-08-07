@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MessageBubble } from './MessageBubble';
 import type { ChatMessage } from '../types';
 
@@ -52,6 +53,22 @@ describe('MessageBubble 富文本渲染', () => {
       expect(document.querySelector('.katex-error')).toBeNull();
       expect(document.body.textContent).toContain('公式：');
     });
+
+    it('点击行内公式复制 LaTeX 源码', async () => {
+      const user = userEvent.setup(); // 先 setup（会安装自己的 clipboard stub）
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: vi.fn().mockResolvedValue(undefined) }, // 再覆盖成可控 spy
+      });
+      render(<MessageBubble message={assistant('求 $x^2$ 极值')} />);
+      await user.click(screen.getByTitle('点击复制公式'));
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('x^2');
+    });
+
+    it('独占一行的 $$ 渲染为 .katex-display', () => {
+      render(<MessageBubble message={assistant('$$\ny=x+1\n$$')} />);
+      expect(document.querySelector('.katex-display')).not.toBeNull();
+    });
   });
 
   describe('Markdown', () => {
@@ -97,6 +114,19 @@ describe('MessageBubble 富文本渲染', () => {
     it('软换行保留为换行（remark-breaks）', () => {
       render(<MessageBubble message={assistant('第一行\n第二行')} />);
       expect(document.querySelectorAll('br').length).toBeGreaterThan(0);
+    });
+
+    it('代码块渲染语言标签与复制按钮，且语法高亮生效', async () => {
+      const user = userEvent.setup();
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: vi.fn().mockResolvedValue(undefined) },
+      });
+      render(<MessageBubble message={assistant('示例：\n\n```python\nx = 1\n```')} />);
+      expect(screen.getByText('python')).toBeInTheDocument();
+      const copyBtn = screen.getByRole('button', { name: '复制代码' });
+      await user.click(copyBtn);
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('x = 1');
     });
   });
 

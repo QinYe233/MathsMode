@@ -6,6 +6,7 @@ const settings = {
   apiKey: 'sk-test',
   model: 'gpt-4o-mini',
   stream: true,
+  theme: 'system' as const,
 };
 
 const jsonResponse = (body: unknown, status = 200) =>
