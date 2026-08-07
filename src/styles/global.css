@@ -19,6 +19,9 @@
   --danger: #dc2626;
   /* 新增令牌 */
   --grid-line: rgba(100, 116, 139, 0.06);
+  --axis: #94a3b8;             /* 函数图坐标轴线（浅色） */
+  --axis-text: #64748b;        /* 函数图刻度文字（浅色） */
+  --axis-grid: rgba(100, 116, 139, 0.20); /* 函数图网格线（浅色） */
   --code-bg: #0f172a;
   --code-fg: #e2e8f0;
   --code-inline-bg: #eef2f7;
@@ -46,6 +49,9 @@
   --accent-soft: rgba(91, 140, 255, 0.16);
   --danger: #f87171;
   --grid-line: rgba(139, 155, 180, 0.07);
+  --axis: #5f7193;             /* 函数图坐标轴线（深色） */
+  --axis-text: #8b9bb4;        /* 函数图刻度文字（深色） */
+  --axis-grid: rgba(139, 155, 180, 0.18); /* 函数图网格线（深色） */
   --code-bg: #0a0f1c;
   --code-fg: #d7e1f0;
   --code-inline-bg: #1c2942;
@@ -309,8 +315,10 @@ body {
 .property-summary p { color: var(--text); line-height: 1.7; }
 
 /* function-plot 浅色覆盖 */
-.function-plot .axis path, .function-plot .axis line, .function-plot .grid line { stroke: var(--border); }
-.function-plot .axis .domain { stroke: var(--border); }
+.function-plot .axis path.domain { stroke: var(--axis); stroke-width: 1.5; }
+.function-plot .axis line { stroke: var(--axis-grid); stroke-width: 1; } /* tick 贯穿线=网格线 */
+.function-plot .axis text { fill: var(--axis-text); }
+.function-plot .grid line { stroke: var(--axis-grid); stroke-width: 1; }
 .function-plot text { fill: var(--text-dim); }
 .function-plot .tip { background: rgba(255, 255, 255, 0.95) !important; color: var(--text) !important; border: 1px solid var(--border) !important; }
 .function-plot .tip .legend { color: var(--text) !important; }
