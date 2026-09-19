@@ -1,0 +1,40 @@
+# 统一行结束符策略（缺陷 N7）
+#
+# 背景：仓库内 PLAN.md / PLAN-UI.md 为 CRLF，其余为 LF，且此前没有 .gitattributes，
+# 导致跨平台编辑会产生整文件 diff 噪声。
+#
+# 策略：文本文件默认在仓库内统一为 LF；Windows 检出时由 Git 按平台决定工作区形式。
+# 说明：`* text=auto eol=lf` 只规范化**新提交**的内容；既有文件需在需要时
+# 单独执行 `git add --renormalize .` 才会转换（本次未执行，避免制造巨大 diff）。
+
+* text=auto eol=lf
+
+# 明确文本类型
+*.ts    text
+*.tsx   text
+*.js    text
+*.json  text
+*.css   text
+*.html  text
+*.md    text
+*.rs    text
+*.toml  text
+*.py    text
+*.yml   text
+*.yaml  text
+
+# 二进制文件：禁止行尾转换与文本 diff
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.icns  binary
+*.ttf   binary
+*.woff  binary
+*.woff2 binary
+*.exe   binary
+
+# 锁文件按文本处理，但不在 diff 中展开（噪声大）
+package-lock.json  text -diff
+Cargo.lock         text -diff

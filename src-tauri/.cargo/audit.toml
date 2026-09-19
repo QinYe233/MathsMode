@@ -1,0 +1,38 @@
+# cargo-audit 配置（RustSec 依赖审计）
+#
+# 项目为 Tauri 2 桌面应用，**仅发布 Windows NSIS 目标**。
+# 但 `Cargo.lock` 会记录全平台（含 Linux/GTK）的传递依赖，因此
+# `cargo audit` 会对这些**在 Windows 上根本不会被编译**的 crate 报警告。
+#
+# 已实测确认（`cargo tree --target x86_64-pc-windows-msvc`）：
+# 以下所有被忽略的 crate **均不在 Windows 依赖树中**。
+#
+# 忽略列表还只包含 `unmaintained` / `unsound` 类**警告**，
+# 不含任何真实漏洞——即 `cargo audit` 的 vulnerabilities 计数为 0。
+# 若将来出现真实漏洞（vulnerability），它不会被这里的 ignore 掩盖，
+# 因为下面只列出具体的 RustSec ID，而非关闭整类检查。
+
+[advisories]
+ignore = [
+    # ── gtk-rs GTK3 绑定：已停止维护（Linux 桌面专用） ──
+    "RUSTSEC-2024-0411", # gdkwayland-sys
+    "RUSTSEC-2024-0412", # gdk
+    "RUSTSEC-2024-0413", # atk
+    "RUSTSEC-2024-0414", # gdkx11-sys
+    "RUSTSEC-2024-0415", # gtk
+    "RUSTSEC-2024-0416", # atk-sys
+    "RUSTSEC-2024-0417", # gdkx11
+    "RUSTSEC-2024-0418", # gdk-sys
+    "RUSTSEC-2024-0419", # gtk3-macros
+    "RUSTSEC-2024-0420", # gtk-sys
+    # ── glib 的 unsound（UB）：仅 glib::VariantStrIter 的 Iterator 实现 ──
+    # Tauri 应用不使用 GVariant 反序列化；且 glib 在 Windows 上不编译。
+    "RUSTSEC-2024-0429",
+    # ── 已停止维护的传递依赖（不在 Windows 树中） ──
+    "RUSTSEC-2024-0370", # proc-macro-error
+    "RUSTSEC-2025-0075", # unic-char-range
+    "RUSTSEC-2025-0080", # unic-common
+    "RUSTSEC-2025-0081", # unic-char-property
+    "RUSTSEC-2025-0098", # unic-ucd-version
+    "RUSTSEC-2025-0100", # unic-ucd-ident
+]

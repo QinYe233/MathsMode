@@ -3,8 +3,18 @@ import type { Interval, Asymptote } from '../../types';
 const EPS_BIG = 1e-6;
 const EPS_TINY = 1e-12;
 
-export function analyzeAsymptotes(f: (x: number) => number, domain: Interval[]): Asymptote[] {
+/** 默认扫描窗口（与 analysisEngine 的数值扫描保持一致） */
+const DEFAULT_POLE_LO = -1000;
+const DEFAULT_POLE_HI = 1000;
+
+export function analyzeAsymptotes(
+  f: (x: number) => number,
+  domain: Interval[],
+  poleWindow?: { lo: number; hi: number },
+): Asymptote[] {
   const out: Asymptote[] = [];
+  const winLo = poleWindow?.lo ?? DEFAULT_POLE_LO;
+  const winHi = poleWindow?.hi ?? DEFAULT_POLE_HI;
 
   for (const iv of domain) {
     if (Number.isFinite(iv.lo) && iv.loOpen && diverges(f, iv.lo, 1)) {
@@ -15,7 +25,9 @@ export function analyzeAsymptotes(f: (x: number) => number, domain: Interval[]):
     }
   }
 
-  for (const p of findPoles(f)) {
+  // 补充扫描：定义域推断可能只覆盖有限窗口，这里在同一窗口内再找一次极点。
+  // 窗口由调用方传入（与零点/极值扫描同源），不再写死 ±1000。
+  for (const p of findPoles(f, winLo, winHi)) {
     if (!out.some((a) => a.type === 'vertical' && Math.abs(parseFloat(a.value.slice(4)) - p) < 1e-3)) {
       out.push({ type: 'vertical', value: `x = ${round(p)}` });
     }
@@ -60,11 +72,16 @@ function diverges(f: (x: number) => number, c: number, dir: 1 | -1): boolean {
   return Math.abs(s) > Math.abs(a) * 1.5 && Math.abs(s) > 1e-3;
 }
 
-function findPoles(f: (x: number) => number): number[] {
+function findPoles(f: (x: number) => number, lo: number, hi: number): number[] {
   const poles: number[] = [];
   const step = 0.02;
+  // 用整数步进而非 `x += step` 累加：后者会因浮点累积误差走不到右端点，
+  // 使窗口边缘的极点被漏掉（缺陷 W1）。
+  const steps = Math.ceil((hi - lo) / step);
   let cluster: number[] = [];
-  for (let x = -1000; x <= 1000; x += step) {
+  for (let i = 0; i <= steps; i++) {
+    // 最后一个采样点强制落在 hi 上，避免因 ceil 而越界
+    const x = i === steps ? hi : lo + i * step;
     const v = f(x);
     if (Number.isFinite(v) && Math.abs(v) > 1e4) cluster.push(x);
     else if (cluster.length) {
@@ -73,7 +90,9 @@ function findPoles(f: (x: number) => number): number[] {
     }
   }
   if (cluster.length) poles.push(refinePole(f, cluster, step));
-  return poles.filter((p) => Math.abs(p) < 1000);
+  // 左闭右闭：端点处的极点不应被排除（旧实现的 `Math.abs(p) < 1000`
+  // 与循环范围自相矛盾，使 ±1000 处恒失效）
+  return poles.filter((p) => Number.isFinite(p) && p >= lo && p <= hi);
 }
 
 function refinePole(f: (x: number) => number, cluster: number[], step: number): number {

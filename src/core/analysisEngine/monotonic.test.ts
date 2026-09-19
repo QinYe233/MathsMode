@@ -16,9 +16,11 @@ const analyze = (expr: string) => {
 describe('analyzeMonotonic', () => {
   it('二次函数：先减后增，极值在 x=1', () => {
     const { segments, extrema } = analyze('x^2 - 2x - 3');
+    // 缺陷 W3：端点 x=1 属于定义域（f(1)=−4 有定义），故两侧都取闭括号。
+    // 旧实现一律输出开区间，与卡片上「定义域 (−∞,+∞)」自相矛盾。
     expect(segments.map((s) => `${s.interval}:${s.trend}`)).toEqual([
-      '(−∞, 1):dec',
-      '(1, +∞):inc',
+      '(−∞, 1]:dec',
+      '[1, +∞):inc',
     ]);
     expect(extrema).toHaveLength(1);
     expect(extrema[0].type).toBe('min');

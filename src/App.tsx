@@ -5,6 +5,7 @@ import { HistorySidebar } from './components/HistorySidebar';
 import { SettingsModal } from './components/SettingsModal';
 import { DrawerTab } from './components/DrawerTab';
 import { loadSettings } from './core/settingsStore';
+import { nextId } from './core/historyStore';
 import { parseVector } from './core/mathUtil';
 import type { AISettings, FunctionAnalysis, VectorDef } from './types';
 import { analyzeFunction } from './core/analysisEngine';
@@ -39,10 +40,10 @@ export default function App() {
   const [drawerWidth, setDrawerWidthState] = useState<number>(loadDrawerWidth);
   const [highlightedExpr, setHighlightedExpr] = useState<string | null>(null);
 
-  // 固定浅色主题（已移除深色模式）
-  useEffect(() => {
-    document.documentElement.dataset.theme = 'light';
-  }, []);
+  // 固定浅色主题（深色模式已撤销）。
+  // 注意：此前这里会写入 documentElement.dataset.theme，但 global.css 中
+  // 不存在任何 [data-theme] 选择器，该写入无消费者，已移除（缺陷 W9）。
+  // 主题由 global.css 的 :root 令牌与 color-scheme: light 决定。
 
   const saveSettings = (s: AISettings) => {
     setSettings(s);
@@ -63,14 +64,17 @@ export default function App() {
   };
 
   const addManualFunction = (expr: string) => {
-    const a = analyzeFunction({ id: `manual-${Date.now()}`, expr });
+    // 缺陷 N4：此前用 `manual-${Date.now()}`，同一毫秒内添加两个函数会撞 id。
+    // 改用 historyStore.nextId()（内部优先 crypto.randomUUID）。
+    const a = analyzeFunction({ id: `manual-${nextId()}`, expr });
     setManualAnalyses((prev) => [...prev.filter((x) => x.expression !== expr), a]);
   };
 
   const addVector = (input: string): string | null => {
     const r = parseVector(input);
     if ('error' in r) return r.error;
-    const id = `vector-${Date.now()}`;
+    // 同样的 id 唯一性考虑（缺陷 N4）
+    const id = `vector-${nextId()}`;
     setVectorDefs((prev) => {
       const others = prev.filter(
         (v) =>

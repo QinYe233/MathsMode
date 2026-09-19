@@ -1,8 +1,21 @@
+# 依赖与构建产物
 node_modules/
 dist/
+
+# 归档时的历史文档（有意不入版本控制，见 ARCHIVED.md §6）
 docs/
+
+# 外部工具状态
 .superpowers/
 *.local
 
+# Rust 构建产物（约 3.8 GB，`npm run tauri build` 可完全重建）
 src-tauri/target/
 src-tauri/gen/
+
+# Python 缓存（scripts/subset_font.py）
+__pycache__/
+*.pyc
+
+# 注意：release/ 下的发布产物（NSIS 安装包 + 校验和）**有意提交**，
+# 以保证归档后仍能直接取得可用构建，故此处不做忽略。

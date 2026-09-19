@@ -1,4 +1,5 @@
 import type { FunctionDef } from '../types';
+import { normalizeExpr } from './expression/normalize';
 
 const BLOCK_RE = /<!--\s*MATH_FUNCTIONS\s*-->([\s\S]*?)<!--\s*\/MATH_FUNCTIONS\s*-->/;
 
@@ -51,35 +52,7 @@ export function extractFunctions(reply: string): FunctionDef[] {
   return fallback;
 }
 
-const SUPERSCRIPT: Record<string, string> = {
-  '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
-  '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
-};
-
-function normalizeExpr(expr: string): string {
-  return expr
-    .replace(/[−–—]/g, '-') // Unicode 减号
-    .replace(/×/g, '*')
-    .replace(/÷/g, '/')
-    .replace(/π/g, 'pi')
-    .replace(/√\s*\(/g, 'sqrt(') // √(x+1) → sqrt(x+1)（保留右括号，嵌套安全）
-    .replace(/√([a-zA-Z0-9])/g, 'sqrt($1)') // √x → sqrt(x)
-    .replace(/\|([^|]+)\|/g, 'abs($1)') // |x| → abs(x)
-    // 上标运行（可带 ⁻ ⁺）：x² → x^2；x⁻¹ → x^-1
-    .replace(/[⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, (m) => {
-      const sign = m.startsWith('⁻') ? '-' : '';
-      const digits = (m.startsWith('⁻') || m.startsWith('⁺') ? m.slice(1) : m)
-        .split('')
-        .map((c) => SUPERSCRIPT[c])
-        .join('');
-      return `^${sign}${digits}`;
-    })
-    // 全角数字/符号转半角
-    .replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
-    .replace(/（/g, '(')
-    .replace(/）/g, ')')
-    .replace(/＋/g, '+')
-    .replace(/－/g, '-')
-    .replace(/　/g, '')
-    .replace(/\s+/g, '');
-}
+// 归一化实现已统一到 core/expression/normalize（修复缺陷 E5：
+// 此前手动输入框完全没有归一化，导致 x²、√x 被拒）。
+// 此处仅保留转发，避免同一逻辑存在两份实现而再次分叉。
+export { normalizeExpr };

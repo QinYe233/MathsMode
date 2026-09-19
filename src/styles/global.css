@@ -1,6 +1,16 @@
+/*
+ * 界面字体（缺陷 N1 修复）。
+ *
+ * 优先 woff2：实测 5,320,976 B (TTF) → 1,736,508 B (woff2)，**减少 67.4%**。
+ * 字体是首屏必然加载的资源（全局 --font-ui / --font-mono 引用），
+ * 因此这一项直接决定首屏体积。
+ * TTF 作为不支持 woff2 的环境的回退（现代 WebView2 均支持 woff2）。
+ */
 @font-face {
   font-family: 'MapleMonoCN';
-  src: url('../assets/fonts/MapleMono-CN-Regular.ttf') format('truetype');
+  src:
+    url('../assets/fonts/MapleMono-CN-Regular.woff2') format('woff2'),
+    url('../assets/fonts/MapleMono-CN-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -310,8 +320,4 @@ body {
 .modal label { display: block; margin-bottom: 12px; font-size: 13px; color: var(--text-dim); }
 .modal input[type='text'], .modal input[type='password'] { width: 100%; margin-top: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 10px; }
 .modal .checkbox-row { display: flex; align-items: center; gap: 8px; }
-.theme-group { margin-top: 4px; }
-.theme-label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; }
-.theme-options { display: flex; gap: 14px; }
-.radio-row { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); cursor: pointer; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }

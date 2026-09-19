@@ -37,6 +37,42 @@ describe('validateExpression', () => {
     expect(validateExpression('abc')).not.toBeNull();
     expect(validateExpression('x^^2')).not.toBeNull();
   });
+
+  // 回归：缺陷 E1 —— 旧实现用固定 5 个样本点 [0,1,-1,2,0.5] 判定，
+  // 凡定义域不覆盖这 5 点的合法表达式都被误拒。以下均为高中标准题型。
+  it('定义域不含 {0,1,-1,2,0.5} 的合法表达式不应被误拒', () => {
+    for (const expr of [
+      'log(x-4)',
+      'sqrt(x-5)',
+      'log(x-10)',
+      'sqrt(x^2-100)',
+      'sqrt(x-2000)',
+      'log(x-0.8)', // 0.5 在定义域外、1 在定义域内
+    ]) {
+      expect(validateExpression(expr), expr).toBeNull();
+    }
+  });
+
+  it('定义域外确实不可算的表达式仍被拒绝', () => {
+    expect(validateExpression('foo(x)')).not.toBeNull();
+    expect(validateExpression('unknownFn(x)')).not.toBeNull();
+  });
+
+  it('定义域为空的表达式给出明确提示', () => {
+    expect(validateExpression('sqrt(-x^2-1)')).toBe('该表达式在实数范围内无定义');
+  });
+
+  // 回归：缺陷 E5 —— 手动输入此前不经过归一化，中文数学写法被拒。
+  it('支持中文数学写法（上标、根号、绝对值、全角、π）', () => {
+    for (const expr of ['x²', 'x³-2x', '√x', '√(x+1)', '|x|', '２x', 'x⁻¹', 'π']) {
+      expect(validateExpression(expr), expr).toBeNull();
+    }
+  });
+
+  it('空输入给出提示而不是抛错', () => {
+    expect(validateExpression('')).toBe('请输入表达式');
+    expect(validateExpression('   ')).toBe('请输入表达式');
+  });
 });
 
 describe('parseVector', () => {

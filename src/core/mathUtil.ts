@@ -1,55 +1,19 @@
-import { compile, derivative, EvalFunction } from 'mathjs';
+/**
+ * 表达式工具（兼容门面）。
+ *
+ * 实现已迁至 `core/expression/`。本文件保留原有 API 与导入路径，
+ * 使既有调用方与 15 个既有测试无需改动。
+ *
+ * 新代码请直接从 `core/expression` 导入。
+ */
+export { makeEvaluator, derivativeExpr, validateExpression } from './expression';
 
-export function makeEvaluator(expr: string): (x: number) => number {
-  let compiled: EvalFunction;
-  try {
-    compiled = compile(expr);
-  } catch {
-    return () => NaN;
-  }
-  return (x: number) => {
-    try {
-      const v = compiled.evaluate({ x });
-      const n = Number(v);
-      return Number.isNaN(n) ? NaN : n;
-    } catch {
-      return NaN;
-    }
-  };
-}
-
-export function validateExpression(expr: string): string | null {
-  let compiled: EvalFunction;
-  try {
-    compiled = compile(expr);
-  } catch {
-    return '表达式语法错误';
-  }
-  let allNaN = true;
-  for (const x of [0, 1, -1, 2, 0.5]) {
-    let v: number;
-    try {
-      v = Number(compiled.evaluate({ x }));
-    } catch {
-      continue;
-    }
-    if (!Number.isNaN(v)) {
-      allNaN = false;
-      break;
-    }
-  }
-  if (allNaN) return '表达式无法计算，请检查写法（如 x^2、1/(x-1)、sin(x)）';
-  return null;
-}
-
-export function derivativeExpr(expr: string): string {
-  try {
-    return derivative(expr, 'x').toString();
-  } catch {
-    return '';
-  }
-}
-
+/**
+ * 解析向量输入。支持三种写法：
+ * - `a=(3,2)` / `AB = (-3, 2.5)`（带名，名字 1–2 个字母）
+ * - `(3,2)`（无名带括号）
+ * - `-3,2`（无名裸坐标）
+ */
 export function parseVector(
   input: string,
 ): { name: string; x: number; y: number } | { error: string } {

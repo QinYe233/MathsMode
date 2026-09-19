@@ -1,0 +1,84 @@
+/*
+ * 错误边界兜底 UI。
+ *
+ * 有意独立于 global.css：错误边界位于应用根部，必须保证
+ * 「即使应用样式加载失败」也能呈现可读的兜底界面，因此只依赖
+ * 最小量内联样式，不引用 global.css 的设计令牌。
+ */
+
+.error-boundary {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+}
+
+.error-boundary-card {
+  width: 100%;
+  max-width: 460px;
+  padding: 22px 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+.error-boundary-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.error-boundary-msg {
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.error-boundary-hint {
+  margin-top: 10px;
+  color: #64748b;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.error-boundary-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.error-boundary-actions .btn {
+  padding: 6px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.error-boundary-actions .btn:hover {
+  background: #f1f5f9;
+}
+
+.error-boundary-actions .btn.danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.error-boundary-actions .btn.danger:hover {
+  background: #fee2e2;
+}

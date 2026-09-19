@@ -1,4 +1,7 @@
-import '@testing-library/jest-dom';
+// 必须使用 `/vitest` 入口（而非裸包名）：
+// 裸入口注册的是 Jest 的全局 expect 类型，与 Vitest 5 的 Assertion 类型不兼容，
+// 会导致全部 `toBeInTheDocument()` 报 TS2339。
+import '@testing-library/jest-dom/vitest';
 
 // jsdom 的 getComputedStyle 在 MathML 元素（KaTeX 的 <math> 子树）上会崩溃：
 // https://github.com/jsdom/jsdom/issues/3464 —— MathMLElement 没有 .style。

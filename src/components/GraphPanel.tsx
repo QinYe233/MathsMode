@@ -55,9 +55,18 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector, highlighte
     if (!el || total === 0) return;
     const width = size?.w || el.clientWidth || 400;
     const height = Math.max(size?.h || el.clientHeight || 340, 260);
-    const visible = analyses.filter((a) => !hidden[a.expression]);
-    const visibleVectors = vectors.filter((v) => !hidden[`v:${v.id}`]);
     const viewBox = autoView(analyses, vectors);
+
+    // 缺陷 W10：颜色必须按**原始数组下标**分配，然后才过滤隐藏项。
+    // 旧实现先 `filter` 再用过滤后的下标配色，而图例用的是原始下标，
+    // 导致隐藏任一曲线后图例颜色与曲线颜色不再对应（多函数对比时尤其误导）。
+    const visibleAnalyses = analyses
+      .map((a, i) => ({ a, color: COLORS[i % COLORS.length] }))
+      .filter(({ a }) => !hidden[a.expression]);
+    const visibleVectors = vectors
+      .map((v, i) => ({ v, color: COLORS[(analyses.length + i) % COLORS.length] }))
+      .filter(({ v }) => !hidden[`v:${v.id}`]);
+
     try {
       functionPlot({
         target: el,
@@ -69,21 +78,21 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector, highlighte
         xAxis: { domain: viewBox.x, label: 'x' },
         yAxis: { domain: viewBox.y, label: 'y' },
         data: [
-          ...visible.map((a, i) => ({
+          ...visibleAnalyses.map(({ a, color }) => ({
             fn: a.expression,
-            color: COLORS[i % COLORS.length],
+            color,
             graphType: 'polyline' as const,
           })),
-          ...visibleVectors.map((v, i) => ({
+          ...visibleVectors.map(({ v, color }) => ({
             vector: [v.x, v.y] as [number, number],
-            color: COLORS[(visible.length + i) % COLORS.length],
+            color,
             graphType: 'vector' as const,
             skipTip: true,
             label: v.name || '',
           })),
         ] as never,
         annotations: [
-          ...visible.flatMap((a) => {
+          ...visibleAnalyses.flatMap(({ a }) => {
             const inView = (x: number, y: number) =>
               x > viewBox.x[0] && x < viewBox.x[1] && y > viewBox.y[0] && y < viewBox.y[1];
             const anns = a.extrema
@@ -103,9 +112,9 @@ export function GraphPanel({ analyses, vectors, onClear, onAddVector, highlighte
             return anns;
           }),
           ...(focused
-            ? visible
-                .filter((a) => a.expression === focused.expr)
-                .flatMap((a) => {
+            ? visibleAnalyses
+                .filter(({ a }) => a.expression === focused.expr)
+                .flatMap(({ a }) => {
                   const ext = a.extrema.find((e) => Math.abs(e.x - focused.x) < 1e-6);
                   const y = ext ? ext.y : 0;
                   if (focused.x > viewBox.x[0] && focused.x < viewBox.x[1] && y > viewBox.y[0] && y < viewBox.y[1]) {

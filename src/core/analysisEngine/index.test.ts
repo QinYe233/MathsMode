@@ -6,8 +6,8 @@ describe('analyzeFunction', () => {
     const a = analyzeFunction({ id: 'f', expr: 'x^2 - 2x - 3' });
     expect(a.parity).toBe('neither');
     expect(a.monotonic.map((s) => `${s.interval}:${s.trend}`)).toEqual([
-      '(−∞, 1):dec',
-      '(1, +∞):inc',
+      '(−∞, 1]:dec',
+      '[1, +∞):inc',
     ]);
     expect(a.extrema).toHaveLength(1);
     expect(Math.abs(a.extrema[0].x - 1) < 1e-4).toBe(true);
@@ -62,5 +62,30 @@ describe('analyzeFunction', () => {
     expect(a.monotonic).toEqual([{ interval: '(−∞, +∞)', trend: 'const' }]);
     expect(a.parity).toBe('even');
     expect(a.zeroPoints).toEqual([]);
+  });
+
+  // 回归：缺陷 E4 余下部分 —— 窗口外的根此前被静默丢弃
+  describe('窗口外零点（E4 回归）', () => {
+    it('(x-2000)(x-1) 两个零点都要报告', () => {
+      const a = analyzeFunction({ id: 'f', expr: '(x - 2000)*(x - 1)' });
+      expect(a.zeroPoints.some((z) => Math.abs(z - 1) < 1e-3)).toBe(true);
+      expect(a.zeroPoints.some((z) => Math.abs(z - 2000) < 1e-3)).toBe(true);
+    });
+
+    it('x^2-4000000 的 ±2000 零点都要报告', () => {
+      const a = analyzeFunction({ id: 'f', expr: 'x^2 - 4000000' });
+      expect(a.zeroPoints.some((z) => Math.abs(z - 2000) < 1e-2)).toBe(true);
+      expect(a.zeroPoints.some((z) => Math.abs(z + 2000) < 1e-2)).toBe(true);
+    });
+
+    it('不需要放宽的函数不额外增加零点（x^2-2x-3 仍为 2 个）', () => {
+      const a = analyzeFunction({ id: 'f', expr: 'x^2 - 2x - 3' });
+      expect(a.zeroPoints).toHaveLength(2);
+    });
+
+    it('周期函数不做窗口外放宽（sin 仍为主周期内 2 个零点）', () => {
+      const a = analyzeFunction({ id: 'f', expr: 'sin(x)' });
+      expect(a.zeroPoints).toHaveLength(2);
+    });
   });
 });

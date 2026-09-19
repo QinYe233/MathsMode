@@ -1,5 +1,5 @@
 import type { Interval, MonotonicSegment, Extremum } from '../../types';
-import { INF, fmtNum } from './domain';
+import { INF, fmtNum, inDomain } from './domain';
 
 export function analyzeMonotonic(
   fprime: (x: number) => number,
@@ -33,7 +33,7 @@ export function analyzeMonotonic(
     if (signs.length === 0) continue;
     const avg = signs.reduce((s, v) => s + v, 0) / signs.length;
     const trend: MonotonicSegment['trend'] = avg > 1e-8 ? 'inc' : avg < -1e-8 ? 'dec' : 'const';
-    segments.push({ interval: `(${fmtNum(a)}, ${fmtNum(b)})`, trend });
+    segments.push({ interval: formatWindow(a, b, domain), trend });
   }
 
   const extrema: Extremum[] = [];
@@ -71,4 +71,21 @@ function finiteMid(a: number, b: number): number {
   if (a === -INF) return b - 1;
   if (b === INF) return a + 1;
   return (a + b) / 2;
+}
+
+/**
+ * 生成单调区间的字符串标签（缺陷 W3）。
+ *
+ * 旧实现一律输出开区间 `(a, b)`，即使端点**属于**定义域。
+ * 例如 `sqrt(x-5)` 的定义域是 `[5, +∞)`，端点 5 可取值，
+ * 却会被写成 `(5, +∞)` —— 与同一张卡片上「定义域 [5, +∞)」自相矛盾。
+ *
+ * 现按端点是否落在定义域内决定方括号：
+ * - 端点 ∈ 定义域 ⇒ 闭 `[` / `]`
+ * - 否则（含 ±∞）⇒ 开 `(` / `)`
+ */
+function formatWindow(a: number, b: number, domain: Interval[]): string {
+  const loBracket = Number.isFinite(a) && inDomain(a, domain) ? '[' : '(';
+  const hiBracket = Number.isFinite(b) && inDomain(b, domain) ? ']' : ')';
+  return `${loBracket}${fmtNum(a)}, ${fmtNum(b)}${hiBracket}`;
 }

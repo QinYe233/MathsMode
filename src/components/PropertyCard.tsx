@@ -1,15 +1,13 @@
 import type { ReactNode } from 'react';
-import type { FunctionAnalysis, MonotonicSegment } from '../types';
+import type { FunctionAnalysis } from '../types';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-
-const TREND_LABEL: Record<MonotonicSegment['trend'], string> = {
-  inc: '递增 ↑',
-  dec: '递减 ↓',
-  const: '不变 →',
-};
-
-const PARITY_LABEL = { odd: '奇函数', even: '偶函数', neither: '非奇非偶' } as const;
+import {
+  formatMonotonicSegment,
+  formatExtremumMath,
+  truncateList,
+  PARITY_TEXT,
+} from '../core/analysisEngine/summary';
 
 interface Row {
   label: string;
@@ -41,17 +39,45 @@ export function PropertyCard({
   analysis: FunctionAnalysis;
   onFocus?: (x: number) => void;
 }) {
+  // 扫描窗口：数值搜索的有限范围，不是数学边界（缺陷 E3）
+  const scan =
+    analysis.scanWindow &&
+    Number.isFinite(analysis.scanWindow.lo) &&
+    Number.isFinite(analysis.scanWindow.hi)
+      ? analysis.scanWindow
+      : undefined;
+
   const rows: Row[] = [];
   rows.push({
     label: '定义域',
-    value: analysis.domain.map(fmt).join(' ∪ ') || '—',
+    // 截断：tan(x) 的定义域有 637 个区间，不截断会淹没整个卡片（缺陷 W6）
+    value:
+      truncateList(
+        analysis.domain.map(fmt),
+        analysis.domain.length,
+        '个区间',
+      ).join(' ∪ ') || '—',
   });
-  rows.push({ label: '奇偶性', value: PARITY_LABEL[analysis.parity] });
+  rows.push({ label: '奇偶性', value: PARITY_TEXT[analysis.parity] });
+  // 缺陷 W2：AI 声明的定义域若与表达式不符（过宽），此处已按交集收窄，需明确提示
+  if (analysis.domainNarrowed) {
+    rows.push({
+      label: '定义域提示',
+      value: 'AI 给出的定义域包含无定义点，已按表达式修正',
+    });
+  }
   rows.push({
     label: '单调性',
     value: analysis.monotonic.length
-      ? truncate(
-          analysis.monotonic.map((s) => `${s.interval} ${TREND_LABEL[s.trend]}`),
+      ? truncateList(
+          // 与 AI 文字总结共用 formatMonotonicSegment（缺陷 E3）
+          analysis.monotonic.map((s) =>
+            formatMonotonicSegment(s, {
+              suffix: analysis.period !== undefined ? '（每周期重复）' : '',
+              scan,
+              withArrow: true,
+            }),
+          ),
           analysis.monotonic.length,
           '个区间',
         ).join('；')
@@ -61,10 +87,8 @@ export function PropertyCard({
     label: '极值',
     focus: analysis.extrema[0]?.x,
     value: analysis.extrema.length
-      ? truncate(
-          analysis.extrema.map(
-            (e) => `${e.type === 'min' ? '极小' : '极大'}值 $x=${r3(e.x)}, y=${r3(e.y)}$`,
-          ),
+      ? truncateList(
+          analysis.extrema.map(formatExtremumMath),
           analysis.extrema.length,
           '个',
         ).join('；')
@@ -72,7 +96,13 @@ export function PropertyCard({
   });
   rows.push({
     label: '零点',
-    value: analysis.zeroPoints.length ? analysis.zeroPoints.slice(0, 12).map(r3).join('、') : '—',
+    value: analysis.zeroPoints.length
+      ? truncateList(
+          analysis.zeroPoints.map((z) => r3(z)),
+          analysis.zeroPoints.length,
+          '个',
+        ).join('、')
+      : '—',
   });
   rows.push({
     label: '渐近线',
@@ -120,9 +150,4 @@ function fmt(iv: { lo: number; hi: number; loOpen: boolean; hiOpen: boolean }): 
 function r3(x: number): string {
   // 数学语境用 U+2212 减号（如 y=−4），与 ∞ 排版一致
   return String(Math.round(x * 1000) / 1000).replace('-', '−');
-}
-
-function truncate(items: string[], total: number, unit: string): string[] {
-  if (items.length <= 6) return items;
-  return [...items.slice(0, 6), `等 ${total} ${unit}`];
 }

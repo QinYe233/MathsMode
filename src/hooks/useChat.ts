@@ -3,7 +3,7 @@ import type { AISettings, ChatMessage, Session } from '../types';
 import { historyStore, nextId } from '../core/historyStore';
 import { streamChat } from '../core/aiClient';
 import { extractFunctions } from '../core/structuredParser';
-import { analyzeFunction } from '../core/analysisEngine';
+import { analyzeFunctions } from '../core/analysisEngine/workerClient';
 import { loadSettings } from '../core/settingsStore';
 
 export function useChat() {
@@ -70,7 +70,10 @@ export function useChat() {
           });
         }
         const defs = extractFunctions(full);
-        const analysis = defs.map((d) => analyzeFunction(d));
+        // 缺陷 W11：分析在 Worker 中执行，避免流式结束后主线程被冻结数百毫秒
+        // （实测单函数 53–146 ms，比较题 3 函数可达 200–450 ms）。
+        // Worker 不可用时 runner 自动回退主线程并逐函数让出事件循环。
+        const analysis = await analyzeFunctions(defs);
         patchActive((s) => {
           const list = [...s.messages];
           const idx = list.length - 1;
