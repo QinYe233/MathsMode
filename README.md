@@ -54,7 +54,7 @@ npm run tauri build  # 打包 Windows NSIS 安装包
 
 ### 构建产物
 
-`release/0.1.0/` 存放归档时的发布产物（安装包 + exe + SHA256）。自行构建产出在 `src-tauri/target/release/`。
+自行构建产出在 `src-tauri/target/release/`；归档时的发布产物已从仓库移除，需要时本地重新构建。
 
 前端构建约 0.5s；Rust release 编译首次约 1m45s，增量约 37s。
 

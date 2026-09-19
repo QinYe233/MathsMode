@@ -177,7 +177,7 @@ AI 需在解答末尾附函数元数据块；解析失败降级为正则扫描�
 | N7 | 行结束符不统一，无 `.gitattributes` | 新增 `.gitattributes` |
 | N8 | 定义域存在重复扫描 | 保留（与交叉校验耦合） |
 | N9 | `npm audit` 因镜像源不可用 | 改用官方 registry |
-| N10 | 无 `engines`、无 CI | 补齐，新增 `.github/workflows/ci.yml` |
+| N10 | 无 `engines` | 补齐 `engines` 字段 |
 
 ## 8. 遗留问题
 

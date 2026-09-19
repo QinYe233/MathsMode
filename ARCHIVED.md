@@ -21,9 +21,9 @@
 
 技术栈：React 18.3 · TypeScript 5.9 · Vite 8.3 · Vitest 5.0 · mathjs 15.2 · Tauri 2 · Node `^22.12.0 || >=24.0.0`
 
-发布产物在 `release/0.1.0/`：NSIS 安装包 6.91 MB、独立 exe 13.44 MB、`SHA256SUMS.txt`。
+归档时的发布产物（NSIS 安装包 6.91 MB、独立 exe 13.44 MB、`SHA256SUMS.txt`）已从仓库移除，需要时用 `npm run tauri build` 重新构建。
 
-> NSIS 会嵌入构建时间戳，同一源码两次构建哈希不同，属不可复现构建。校验和对应 `release/0.1.0/` 中实际发布的那份文件。
+> NSIS 会嵌入构建时间戳，同一源码两次构建哈希不同，属不可复现构建。
 
 ## 归档前完成的工作
 
