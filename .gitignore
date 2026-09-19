@@ -2,12 +2,8 @@
 node_modules/
 dist/
 
-# 归档时的历史文档（有意不入版本控制，见 ARCHIVED.md §6）
+# 开发过程的历史文档（有意不入版本控制，见 ARCHIVED.md「文档说明」）
 docs/
-
-# 外部工具状态
-.superpowers/
-*.local
 
 # Rust 构建产物（约 3.8 GB，`npm run tauri build` 可完全重建）
 src-tauri/target/
@@ -16,6 +12,24 @@ src-tauri/gen/
 # Python 缓存（scripts/subset_font.py）
 __pycache__/
 *.pyc
+
+# AI 编码工具的状态与指令文件（不属项目内容）
+.superpowers/
+.claude/
+.cursor/
+.windsurf/
+.aider/
+.specstory/
+.agents/
+AGENTS.md
+CLAUDE.md
+.copilot/
+
+# 本地环境
+*.local
+.env
+.env.*
+!.env.example
 
 # 注意：release/ 下的发布产物（NSIS 安装包 + 校验和）**有意提交**，
 # 以保证归档后仍能直接取得可用构建，故此处不做忽略。
