@@ -38,7 +38,7 @@
 - **字体** TTF → woff2，5.32 MB → 1.66 MB
 - **依赖漏洞**：mathjs 升级 15.2.0、vite 升级 8.3、vitest 升级 5.0，两侧审计归零
 
-详见 [PROJECT-STATUS.md](PROJECT-STATUS.md) 与 [DEFECT-AUDIT.md](DEFECT-AUDIT.md)。
+详见 [PROJECT-STATUS.md](PROJECT-STATUS.md)。
 
 ## 已知开放项
 
@@ -92,15 +92,14 @@ npm run tauri build     # 需要 Rust 工具链与 x86_64-pc-windows-msvc target
 | 文件 | 性质 | 在版本控制内 |
 |---|---|---|
 | `ARCHIVED.md`、`PROJECT-STATUS.md` | 事实依据，描述实际状态 | 是 |
-| `DEFECT-AUDIT.md`、`OPENSOURCE-ADOPTION.md` | 归档前的审计与调研记录 | 是 |
-| `PLAN.md`、`PLAN-UI.md` | 历史计划，部分内容与代码不符 | 是 |
+| `OPENSOURCE-ADOPTION.md` | 归档前的开源项目调研记录 | 是 |
 | `docs/**` | 开发过程的设计文档与实施计划 | **否** |
 
 `docs/` 目录有意不入版本控制（见 `.gitignore`），其中包含 `docs/README.md` 索引与
 `docs/superpowers/**` 的设计快照、实施计划。这些是开发过程的历史记录，部分内容与最终代码不符
 （例如深色模式相关设计已作废）。clone 后看不到该目录属预期行为。
 
-`PLAN-UI.md` 的任务 1.3 / 1.4（深色模式）虽标记为完成，实际已被撤销 —— 应用现为固定浅色主题。
+深色模式相关任务（原 1.3 / 1.4）虽曾标记为完成，实际已被撤销 —— 应用现为固定浅色主题。
 
 ## 说明
 

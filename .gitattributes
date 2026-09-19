@@ -1,6 +1,6 @@
 # 统一行结束符策略（缺陷 N7）
 #
-# 背景：仓库内 PLAN.md / PLAN-UI.md 为 CRLF，其余为 LF，且此前没有 .gitattributes，
+# 背景：仓库内部分 Markdown 为 CRLF，其余为 LF，且此前没有 .gitattributes，
 # 导致跨平台编辑会产生整文件 diff 噪声。
 #
 # 策略：文本文件默认在仓库内统一为 LF；Windows 检出时由 Git 按平台决定工作区形式。

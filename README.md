@@ -84,9 +84,8 @@ cd src-tauri && cargo audit
 |------|------|
 | [ARCHIVED.md](ARCHIVED.md) | 归档说明、状态、已知开放项 |
 | [PROJECT-STATUS.md](PROJECT-STATUS.md) | 技术现状：模块、性能、已知问题、修复记录 |
-| [DEFECT-AUDIT.md](DEFECT-AUDIT.md) | 26 项缺陷审计与修复 |
 | [OPENSOURCE-ADOPTION.md](OPENSOURCE-ADOPTION.md) | 开源项目调研 |
-| `PLAN.md` / `PLAN-UI.md` / `docs/` | 历史设计与计划，部分内容与代码不符 |
+| `docs/` | 历史设计与计划（未纳入版本控制），部分内容与代码不符 |
 
 ## 许可证
 

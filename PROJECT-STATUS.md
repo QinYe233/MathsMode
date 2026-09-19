@@ -136,7 +136,7 @@ AI 需在解答末尾附函数元数据块；解析失败降级为正则扫描�
 
 ## 7. 已修复缺陷
 
-审计出 26 项（Error 5 / Warning 11 / Note 10），全部处理。详见 [DEFECT-AUDIT.md](DEFECT-AUDIT.md)。
+审计出 26 项（Error 5 / Warning 11 / Note 10），全部处理。
 
 **Error**
 
@@ -202,7 +202,5 @@ AI 需在解答末尾附函数元数据块；解析失败降级为正则扫描�
 | 文件 | 性质 |
 |---|---|
 | `ARCHIVED.md` | 归档说明 |
-| `DEFECT-AUDIT.md` | 26 项缺陷审计与修复依据 |
 | `OPENSOURCE-ADOPTION.md` | 开源项目调研 |
-| `PLAN.md` / `PLAN-UI.md` | 历史计划，部分与代码不符。`PLAN-UI.md` 的深色模式任务已被撤销 |
 | `docs/superpowers/**` | 设计快照与实施计划，已就地补注勘误 |
